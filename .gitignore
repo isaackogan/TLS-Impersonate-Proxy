@@ -1,0 +1,26 @@
+# design docs stay local
+docs/
+
+# ide
+.idea/
+.vscode/
+*.swp
+
+# secrets & local config
+.env
+.env.*
+!.env.example
+*.key
+ca.pem
+ca.key
+tip.local.yaml
+
+# build
+bin/
+dist/
+*.test
+*.out
+coverage.*
+
+# os
+.DS_Store
