@@ -7,13 +7,12 @@ docs/
 *.swp
 
 # secrets & local config
-.env
-.env.*
-!.env.example
+tip.yaml
+tip.*.yaml
+!tip.example.yaml
 *.key
 ca.pem
 ca.key
-tip.local.yaml
 
 # build
 bin/
