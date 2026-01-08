@@ -1,5 +1,5 @@
-# design docs stay local
-docs/
+# internal design docs stay local
+dev/
 
 # ide
 .idea/
