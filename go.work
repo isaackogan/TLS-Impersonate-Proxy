@@ -1,0 +1,14 @@
+go 1.27
+
+toolchain go1.27.1
+
+use (
+	./cmd/tip
+	./internal/config
+	./internal/directive
+	./internal/impersonate
+	./internal/logging
+	./internal/metrics
+	./internal/proxy
+	./internal/tests
+)
