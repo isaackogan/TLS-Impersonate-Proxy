@@ -1,0 +1,52 @@
+server:
+  listen: ":8080"
+  max_connections: 100
+  read_header_timeout: 5s
+  idle_timeout: 60s
+  max_header_bytes: 65536
+  shutdown_grace: 20s
+  serve_ca: false
+tls:
+  ca_cert: /var/lib/tip/ca.pem
+  ca_key: /var/lib/tip/ca.key
+  cert_cache_size: 10
+  client_http2: true
+upstream:
+  verify_certificates: true
+  timeout: 45s
+directives:
+  defaults:
+    - "Browser: Chrome"
+    - "X-Tip-Os: Random"
+  deny: [Proxy, InterfaceAddr]
+clients:
+  max: 5
+  idle_ttl: 1m
+encoding:
+  mode: decode
+auth:
+  realm: lab
+  users:
+    - name: alice
+      password: secret
+logging:
+  level: debug
+  format: text
+  redact: [Authorization]
+metrics:
+  enabled: true
+  listen: ":9999"
+  path: /m
+  collectors:
+    requests: true
+    latency: false
+    bandwidth: true
+    upstream_errors: false
+    validation_errors: true
+    clients: false
+    tunnels: true
+  routes:
+    - name: room
+      host: www.tiktok.com
+      path: /room/:room_id/*
+      capture: [room_id]

@@ -1,0 +1,14 @@
+server:
+  shutdown_grace: 30
+clients:
+  max: 0
+encoding:
+  mode: maybe
+auth:
+  users:
+    - name: bob
+metrics:
+  routes:
+    - name: Bad-Name
+      host: h
+      path: p

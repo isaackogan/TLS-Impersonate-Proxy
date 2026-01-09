@@ -1,0 +1,9 @@
+server:
+  listen: ":8080"
+  lisen: ":8081"
+metrics:
+  routes:
+    - name: a
+      host: h
+      path: /p
+      captures: [x]

@@ -1,0 +1,4 @@
+server:
+  listen: ":1234"
+metrics:
+  enabled: false
