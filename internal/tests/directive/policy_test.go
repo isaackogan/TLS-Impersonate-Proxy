@@ -1,0 +1,30 @@
+package directive_test
+
+import (
+	"testing"
+
+	"github.com/isaackogan/tls-impersonate-proxy/internal/directive"
+)
+
+func TestNewPolicyValidates(t *testing.T) {
+	cases := []struct {
+		name     string
+		defaults []string
+		deny     []string
+		wantErr  bool
+	}{
+		{"ok", []string{"Browser: Chrome", "X-Tip-Os: IOS,Android"}, []string{"Proxy", "x-tip-dns"}, false},
+		{"bad default value", []string{"Browser: Safari"}, nil, true},
+		{"bad default line", []string{"Browser Chrome"}, nil, true},
+		{"unknown default", []string{"Colour: red"}, nil, true},
+		{"unknown deny", nil, []string{"Colour"}, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := directive.NewPolicy(tc.defaults, tc.deny)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("err = %v, wantErr %v", err, tc.wantErr)
+			}
+		})
+	}
+}
