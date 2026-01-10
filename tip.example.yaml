@@ -1,0 +1,56 @@
+# TIP configuration reference. Every key is shown with its default unless noted.
+# One YAML document, validated at startup; unknown keys are errors.
+
+server:
+  listen: ":8080"              # proxy listener
+  max_connections: 0           # 0 = unbounded; otherwise the listener refuses beyond this many open client connections
+  read_header_timeout: 10s
+  idle_timeout: 90s
+  max_header_bytes: 1048576
+  shutdown_grace: 15s          # drain window on SIGTERM
+  serve_ca: true               # answer GET /ca.pem and /healthz on the proxy port for non-proxy requests
+
+tls:
+  ca_cert: /var/lib/tip/ca.pem # generated on first start when both files are absent (default ./ca.pem outside containers)
+  ca_key: /var/lib/tip/ca.key  # must be 0600; TIP refuses to start otherwise (default ./ca.key outside containers)
+  cert_cache_size: 4096        # leaf certificates kept in memory, keyed by host
+  client_http2: false          # offer h2 to MITM'd clients; off keeps the client side HTTP/1.1
+
+upstream:
+  verify_certificates: false   # surf skips verification by default; true for strict deployments
+  timeout: 30s                 # ceiling on time to response headers; X-Tip-Timeout can only shorten it
+
+directives:
+  defaults: []                 # header lines applied when the request omits the directive, e.g. "Browser: Chrome"
+  deny: []                     # directives clients may not send, e.g. [Proxy, InterfaceAddr, Dns, DnsOverTls]
+
+clients:
+  max: 256                     # distinct surf clients kept alive (LRU beyond this)
+  idle_ttl: 10m                # evict a client unused for this long
+
+encoding:
+  mode: negotiate              # negotiate | decode | passthrough
+
+auth:
+  realm: tip
+  users: []                    # - {name: alice, password: secret}; empty disables proxy authentication
+
+logging:
+  level: info                  # debug | info | warn | error
+  format: json                 # json | text
+  redact: [Authorization, Proxy-Authorization, Cookie, Set-Cookie]
+
+metrics:
+  enabled: true
+  listen: ":9090"              # admin listener; /metrics, /healthz and /ca.pem
+  path: /metrics
+  collectors:
+    requests: true
+    latency: true
+    bandwidth: true
+    upstream_errors: true
+    validation_errors: true
+    clients: true
+    tunnels: true
+  routes: []                   # - {name: room, host: www.tiktok.com, path: /room/:room_id/*, capture: [room_id]}
+                               # capture turns a path parameter into a label: one series per distinct value
