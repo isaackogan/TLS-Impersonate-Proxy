@@ -1,0 +1,10 @@
+.git
+.github
+dev
+docs
+deployments
+helm
+tip.yaml
+tip.*.yaml
+*.pem
+*.key
