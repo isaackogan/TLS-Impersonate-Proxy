@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directories:
+      - /cmd/tip
+      - /internal/config
+      - /internal/directive
+      - /internal/impersonate
+      - /internal/logging
+      - /internal/metrics
+      - /internal/proxy
+      - /internal/tests
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /deployments
+    schedule:
+      interval: weekly
