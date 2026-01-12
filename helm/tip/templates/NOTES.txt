@@ -1,0 +1,6 @@
+TIP is running. Fetch the CA from inside the cluster:
+
+  kubectl run -it --rm curl --image=curlimages/curl --restart=Never -- \
+    curl -s http://{{ include "tip.fullname" . }}:{{ .Values.service.port }}/ca.pem
+
+Point clients at http://{{ include "tip.fullname" . }}:{{ .Values.service.port }} and trust that certificate.

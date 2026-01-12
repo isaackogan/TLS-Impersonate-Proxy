@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tip.fullname" . }}
+  labels: {{- include "tip.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels: {{- include "tip.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "tip.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ toYaml .Values.config | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "tip.fullname" . }}
+      terminationGracePeriodSeconds: {{ include "tip.grace" . }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        fsGroup: 65532
+      containers:
+        - name: tip
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: proxy
+              containerPort: 8080
+            - name: admin
+              containerPort: 9090
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: admin
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: admin
+          volumeMounts:
+            - name: config
+              mountPath: /etc/tip
+              readOnly: true
+            - name: ca
+              mountPath: /var/lib/tip
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "tip.fullname" . }}
+        - name: ca
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (include "tip.fullname" .) }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}

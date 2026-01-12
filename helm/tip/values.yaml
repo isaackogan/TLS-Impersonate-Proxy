@@ -1,0 +1,45 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/isaackogan/tls-impersonate-proxy
+  tag: ""
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+
+admin:
+  service:
+    enabled: true
+    port: 9090
+
+persistence:
+  enabled: true
+  size: 16Mi
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  existingClaim: ""
+
+serviceMonitor:
+  enabled: false
+  interval: 30s
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# The tip.yaml document, verbatim. Every key tip.yaml accepts is accepted here.
+# replicaCount above 1 needs a ReadWriteMany claim, or every replica mints its own CA.
+config:
+  server:
+    listen: ":8080"
+  tls:
+    ca_cert: /var/lib/tip/ca.pem
+    ca_key: /var/lib/tip/ca.key
+  metrics:
+    listen: ":9090"
+  logging:
+    level: info
+    format: json

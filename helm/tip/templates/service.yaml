@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "tip.fullname" . }}
+  labels: {{- include "tip.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector: {{- include "tip.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: proxy
+      port: {{ .Values.service.port }}
+      targetPort: proxy
+{{- if .Values.admin.service.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "tip.fullname" . }}-admin
+  labels: {{- include "tip.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector: {{- include "tip.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: admin
+      port: {{ .Values.admin.service.port }}
+      targetPort: admin
+{{- end }}
