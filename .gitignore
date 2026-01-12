@@ -23,3 +23,6 @@ coverage.*
 
 # os
 .DS_Store
+
+# stray local builds
+/tip
