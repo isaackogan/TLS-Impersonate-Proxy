@@ -9,7 +9,7 @@ dev/
 # secrets & local config
 tip.yaml
 tip.*.yaml
-!tip.example.yaml
+!docs/tip.example.yaml
 *.key
 ca.pem
 ca.key

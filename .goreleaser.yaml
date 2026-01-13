@@ -13,7 +13,7 @@ builds:
     ldflags: ["-s -w -X main.version={{ .Version }}"]
 archives:
   - formats: [tar.gz]
-    files: [LICENSE, tip.example.yaml]
+    files: [LICENSE, docs/tip.example.yaml]
 checksum:
   name_template: checksums.txt
 changelog:

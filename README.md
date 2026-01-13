@@ -1,4 +1,4 @@
-# TIP
+# TLS-Impersonate-Proxy: A light-weight MITM proxy for scraping
 
 TLS Impersonate Proxy. Point any HTTP client at TIP as an ordinary HTTP proxy, describe the browser you want with `X-Tip-*` headers, and the destination sees that browser's TLS, HTTP/2 and header fingerprint. The response comes back untouched.
 
@@ -20,7 +20,9 @@ client ◀──────────(status, headers, body as sent)── TI
 ```sh
 docker run -d --name tip -p 8080:8080 -v tip-ca:/var/lib/tip \
   -v "$PWD/tip.yaml:/etc/tip/tip.yaml:ro" ghcr.io/isaackogan/tls-impersonate-proxy:1
+  
 curl -s http://localhost:8080/ca.pem -o tip-ca.pem
+
 curl -s --proxy http://localhost:8080 --cacert tip-ca.pem \
   -H "X-Tip-Browser: Chrome" -H "X-Tip-Os: Windows" https://tls.browserleaks.com/json
 ```
@@ -154,7 +156,7 @@ auth:
   users: [{name: alice, password: secret}]
 ```
 
-One YAML file, every key optional, unknown keys rejected at startup. [tip.example.yaml](tip.example.yaml) lists every key with its default and is the reference.
+One YAML file, every key optional, unknown keys rejected at startup. [tip.example.yaml](docs/tip.example.yaml) lists every key with its default and is the reference.
 
 ## Observability
 
