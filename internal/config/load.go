@@ -9,7 +9,9 @@ import (
 	"strings"
 
 	z "github.com/Oudwins/zog"
+	"github.com/Oudwins/zog/conf"
 	"github.com/Oudwins/zog/parsers/zjson"
+	"github.com/Oudwins/zog/zconst"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -49,13 +51,20 @@ func Load(path string) (Config, error) {
 		return Config{}, fmt.Errorf("%s: %w", path, err)
 	}
 	var cfg Config
-	if issues := schema.Parse(zjson.Decode(bytes.NewReader(encoded)), &cfg); len(issues) > 0 {
+	if issues := schema.Parse(zjson.Decode(bytes.NewReader(encoded)), &cfg, z.WithIssueFormatter(formatIssue)); len(issues) > 0 {
 		return Config{}, InvalidError{issues}
 	}
 	if cfg.Logging.Redact == nil {
 		cfg.Logging.Redact = defaultRedact
 	}
 	return cfg, nil
+}
+
+func formatIssue(e *z.ZogIssue, ctx z.Ctx) {
+	conf.DefaultIssueFormatter(e, ctx)
+	if e.Code == zconst.IssueCodeCoerce && e.Err != nil {
+		e.SetMessage(e.Err.Error())
+	}
 }
 
 func Permissive(path string) (bool, error) {
