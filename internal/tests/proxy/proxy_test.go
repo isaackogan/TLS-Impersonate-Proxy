@@ -82,10 +82,20 @@ type harness struct {
 
 func newHarness(t *testing.T, mutate func(*proxy.Options)) *harness {
 	t.Helper()
+	policy, _ := directive.NewPolicy(nil, nil)
+	return build(t, policy, mutate)
+}
+
+func newHarnessWithPolicy(t *testing.T, policy directive.Policy) *harness {
+	t.Helper()
+	return build(t, policy, nil)
+}
+
+func build(t *testing.T, policy directive.Policy, mutate func(*proxy.Options)) *harness {
+	t.Helper()
 	ca, pool := testutil.TempCA(t)
 	logs := &bytes.Buffer{}
 	log := slog.New(slog.NewJSONHandler(logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	policy, _ := directive.NewPolicy(nil, nil)
 	cache := impersonate.NewCache(impersonate.CacheOptions{Max: 8, IdleTtl: time.Hour}, func(s directive.Spec) (*impersonate.Client, error) {
 		return impersonate.Build(s, impersonate.Options{ResponseHeaderTimeout: 5 * time.Second})
 	}, nil)

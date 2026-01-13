@@ -93,7 +93,7 @@ func TestEndToEnd(t *testing.T) {
 	}
 	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
-	if resp.StatusCode != 200 || !strings.Contains(string(body), "Chrome/152") {
+	if resp.StatusCode != 200 || !strings.Contains(string(body), `\"Google Chrome\";v=\"152\"`) {
 		t.Fatalf("status %d body %s", resp.StatusCode, body)
 	}
 	metrics, err := http.Get(tp.adminURL + "/metrics")

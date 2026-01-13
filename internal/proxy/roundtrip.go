@@ -24,9 +24,13 @@ type roundTripper struct {
 func (rt *roundTripper) RoundTrip(req *http.Request, _ *goproxy.ProxyCtx) (*http.Response, error) {
 	s, st := rt.server, rt.state
 	ctx, cancel := context.WithCancel(req.Context())
+	timeout := s.opts.Timeout
+	if t := st.directive.Timeout; t > 0 && (timeout == 0 || t < timeout) {
+		timeout = t
+	}
 	var timer *time.Timer
-	if t := st.directive.Timeout; t > 0 && t < s.opts.Timeout {
-		timer = time.AfterFunc(t, cancel)
+	if timeout > 0 {
+		timer = time.AfterFunc(timeout, cancel)
 	}
 	st.capture = &impersonate.Capture{}
 	ctx = impersonate.WithCapture(ctx, st.capture)

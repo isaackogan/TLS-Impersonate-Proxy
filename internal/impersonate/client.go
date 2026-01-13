@@ -21,10 +21,16 @@ type Client struct {
 	inflight  atomic.Int64
 	lastUsed  atomic.Int64
 	retired   atomic.Bool
+	closed    atomic.Bool
 	closeOnce sync.Once
 }
 
+var ErrClosed = errors.New("impersonate: client is closed")
+
 func (c *Client) RoundTrip(r *http.Request) (*http.Response, error) {
+	if c.closed.Load() {
+		return nil, ErrClosed
+	}
 	return c.transport.RoundTrip(r)
 }
 
@@ -35,7 +41,10 @@ func (c *Client) Release() {
 }
 
 func (c *Client) Close() error {
-	c.closeOnce.Do(func() { c.closer.Close() })
+	c.closeOnce.Do(func() {
+		c.closed.Store(true)
+		c.closer.Close()
+	})
 	return nil
 }
 

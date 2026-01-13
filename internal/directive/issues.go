@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+var singleLine = strings.NewReplacer("\r", " ", "\n", " ")
+
 type Issue struct {
 	Path    string
 	Message string
@@ -32,7 +34,7 @@ func (is Issues) Headers() http.Header {
 	h := http.Header{}
 	h.Set("X-Tip-Error-Count", strconv.Itoa(len(is)))
 	for _, issue := range is {
-		h.Add("X-Tip-Error", issue.String())
+		h.Add("X-Tip-Error", singleLine.Replace(issue.String()))
 	}
 	return h
 }

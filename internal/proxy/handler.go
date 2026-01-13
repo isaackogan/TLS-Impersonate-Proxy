@@ -54,6 +54,9 @@ func (s *Server) onRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Requ
 			}
 		}
 	}
+	if d.ForceHttp == "" && isWebSocketUpgrade(req.Header) {
+		d.ForceHttp = "1"
+	}
 	st.directive = s.resolve(t, d)
 	st.spec = st.directive.Spec()
 	st.accept = acceptEncodings(req.Header.Values("Accept-Encoding"))
@@ -91,6 +94,10 @@ func (s *Server) resolve(t *tunnel, d directive.Directive) directive.Directive {
 		t.picks[key] = d.Os[0]
 	}
 	return d
+}
+
+func isWebSocketUpgrade(h http.Header) bool {
+	return strings.EqualFold(h.Get("Upgrade"), "websocket")
 }
 
 func upgrade(req *http.Request) {

@@ -78,7 +78,7 @@ func (d Directive) Spec() Spec {
 		DisableKeepAlive: d.DisableKeepAlive,
 		H2c:              d.H2c,
 	}
-	if len(d.Os) > 0 {
+	if len(d.Os) > 0 && d.Browser != "" {
 		s.Os = d.Os[0]
 	}
 	return s

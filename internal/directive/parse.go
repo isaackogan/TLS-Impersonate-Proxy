@@ -50,11 +50,12 @@ func Parse(h http.Header, p Policy) (Directive, Issues) {
 			in[key] = shaped
 		}
 	}
+	var d Directive
+	issues = append(issues, fromZog(schema.Parse(in, &d, z.WithIssueFormatter(formatIssue)))...)
 	if len(issues) > 0 {
 		return Directive{}, issues
 	}
-	var d Directive
-	return d, fromZog(schema.Parse(in, &d, z.WithIssueFormatter(formatIssue)))
+	return d, nil
 }
 
 func Strip(h http.Header) {
