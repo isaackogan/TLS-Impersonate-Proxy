@@ -62,7 +62,11 @@ func Build(s directive.Spec, o Options) (*Client, error) {
 		b = preset(b.JA())
 	}
 	if s.Http2Settings != nil {
-		b = http2Settings(b.HTTP2Settings(), s.Http2Settings)
+		h := b.HTTP2Settings()
+		applyHttp2(h, s.Http2Settings)
+		if s.Browser == "" {
+			b = h.Set()
+		}
 	}
 	if s.Http3Settings != nil {
 		b = http3Settings(b.HTTP3Settings(), s.Http3Settings)
@@ -124,7 +128,7 @@ func impersonate(im *surf.Impersonate, s directive.Spec) *surf.Builder {
 	return im.Chrome()
 }
 
-func http2Settings(h *surf.HTTP2Settings, s *directive.Http2) *surf.Builder {
+func applyHttp2(h *surf.HTTP2Settings, s *directive.Http2) {
 	set := func(v *uint32, apply func(uint32) *surf.HTTP2Settings) {
 		if v != nil {
 			apply(*v)
@@ -139,7 +143,6 @@ func http2Settings(h *surf.HTTP2Settings, s *directive.Http2) *surf.Builder {
 	set(s.NoRFC7540Priorities, h.NoRFC7540Priorities)
 	set(s.ConnectionFlow, h.ConnectionFlow)
 	set(s.InitialStreamID, h.InitialStreamID)
-	return h.Set()
 }
 
 func http3Settings(h *surf.HTTP3Settings, s *directive.Http3) *surf.Builder {
