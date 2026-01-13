@@ -1,0 +1,2 @@
+upstream:
+  timeout: 30

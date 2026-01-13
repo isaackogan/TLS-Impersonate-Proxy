@@ -1,6 +1,7 @@
 package metrics_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/isaackogan/tls-impersonate-proxy/internal/metrics"
@@ -47,6 +48,31 @@ func TestMatcherRejectsBadRoutes(t *testing.T) {
 	for _, routes := range bad {
 		if _, err := metrics.NewMatcher(routes); err == nil {
 			t.Errorf("expected error for %+v", routes)
+		}
+	}
+}
+
+func TestCapturesUnionAcrossRoutes(t *testing.T) {
+	m, err := metrics.New(metrics.Options{
+		Collectors: metrics.Collectors{Requests: true},
+		Routes: []metrics.Route{
+			{Name: "room", Host: "a.example", Path: "/room/:room_id", Capture: []string{"room_id"}},
+			{Name: "user", Host: "b.example", Path: "/u/:user_id", Capture: []string{"user_id"}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.RequestFinished(metrics.Request{Host: "a.example", Method: "GET", Path: "/room/1", Status: 200})
+	m.RequestFinished(metrics.Request{Host: "b.example", Method: "GET", Path: "/u/9", Status: 200})
+	out := scrape(t, m)
+	for _, want := range []string{
+		`route="room",status="200",user_id=""`,
+		`room_id="",route="user",status="200",user_id="9"`,
+		`room_id="1",route="room"`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q in:\n%s", want, out)
 		}
 	}
 }

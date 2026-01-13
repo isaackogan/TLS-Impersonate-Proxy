@@ -126,3 +126,10 @@ func TestPermissive(t *testing.T) {
 		t.Error("0600 should not be permissive")
 	}
 }
+
+func TestNumericDurationAsksForAUnit(t *testing.T) {
+	_, err := config.Load(fixture("numeric-duration.yaml"))
+	if err == nil || !strings.Contains(err.Error(), "upstream.timeout: must be a duration with a unit") {
+		t.Fatalf("got %v", err)
+	}
+}
