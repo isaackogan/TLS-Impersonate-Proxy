@@ -17,7 +17,7 @@ func headers(kv ...string) http.Header {
 	return h
 }
 
-func mustPolicy(t *testing.T, defaults, deny []string) directive.Policy {
+func mustPolicy(t *testing.T, defaults map[string]string, deny []string) directive.Policy {
 	t.Helper()
 	p, err := directive.NewPolicy(defaults, deny)
 	if err != nil {
@@ -137,7 +137,7 @@ func TestRepeatedListLinesJoin(t *testing.T) {
 }
 
 func TestDefaultsAndDeny(t *testing.T) {
-	p := mustPolicy(t, []string{"Browser: Firefox", "X-Tip-Os: Random"}, []string{"Proxy"})
+	p := mustPolicy(t, map[string]string{"Browser": "Firefox", "X-Tip-Os": "Random"}, []string{"Proxy"})
 	d, issues := directive.Parse(headers("X-Tip-Os", "linux"), p)
 	if len(issues) > 0 || d.Browser != "firefox" || strings.Join(d.Os, ",") != "linux" {
 		t.Fatalf("%+v %v", d, issues)

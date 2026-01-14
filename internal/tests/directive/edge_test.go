@@ -71,7 +71,7 @@ func TestParseAcceptsEdgeValues(t *testing.T) {
 }
 
 func TestDeniedDirectiveStillHasItsDefault(t *testing.T) {
-	p := mustPolicy(t, []string{"Proxy: socks5://user:pw@egress.example:1080"}, []string{"Proxy"})
+	p := mustPolicy(t, map[string]string{"Proxy": "socks5://user:pw@egress.example:1080"}, []string{"Proxy"})
 	d, issues := directive.Parse(headers("X-Tip-Browser", "chrome"), p)
 	if len(issues) > 0 || d.Proxy != "socks5://user:pw@egress.example:1080" {
 		t.Fatalf("%+v %v", d, issues)

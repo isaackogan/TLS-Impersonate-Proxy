@@ -36,7 +36,7 @@ func TestRandomOsIsStickyPerTunnel(t *testing.T) {
 }
 
 func TestPolicyDefaultsAndDeny(t *testing.T) {
-	policy, err := directive.NewPolicy([]string{"Browser: Firefox", "Os: Linux"}, []string{"Proxy"})
+	policy, err := directive.NewPolicy(map[string]string{"Browser": "Firefox", "Os": "Linux"}, []string{"Proxy"})
 	if err != nil {
 		t.Fatal(err)
 	}

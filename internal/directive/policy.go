@@ -11,7 +11,7 @@ type Policy struct {
 	deny     map[string]struct{}
 }
 
-func NewPolicy(defaults, deny []string) (Policy, error) {
+func NewPolicy(defaults map[string]string, deny []string) (Policy, error) {
 	p := Policy{defaults: map[string]any{}, deny: map[string]struct{}{}}
 	for _, name := range deny {
 		key := strings.ToLower(strings.TrimSpace(name))
@@ -24,11 +24,7 @@ func NewPolicy(defaults, deny []string) (Policy, error) {
 		p.deny[key] = struct{}{}
 	}
 	h := http.Header{}
-	for _, line := range defaults {
-		name, value, ok := strings.Cut(line, ":")
-		if !ok {
-			return Policy{}, fmt.Errorf("defaults: %q is not a header line", line)
-		}
+	for name, value := range defaults {
 		name = strings.TrimSpace(name)
 		if !hasPrefix(name) {
 			name = Prefix + name

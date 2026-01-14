@@ -35,6 +35,10 @@ func listenAddr() *z.StringSchema[string] {
 
 func flag(def bool) *z.BoolSchema[bool] { return z.Bool().Default(def) }
 
+func stringMap() *z.MapSchema[string, string] {
+	return z.EXPERIMENTAL_MAP[string, string](z.String().Min(1), z.String().Min(1))
+}
+
 var schema = z.Struct(z.Shape{
 	"server": z.Struct(z.Shape{
 		"listen":            listenAddr().Default(":8080"),
@@ -56,7 +60,7 @@ var schema = z.Struct(z.Shape{
 		"timeout":            duration().Default(30 * time.Second).GT(0),
 	}),
 	"directives": z.Struct(z.Shape{
-		"defaults": z.Slice(z.String().Min(1)),
+		"defaults": stringMap(),
 		"deny":     z.Slice(z.String().Min(1)),
 	}),
 	"clients": z.Struct(z.Shape{
@@ -68,10 +72,7 @@ var schema = z.Struct(z.Shape{
 	}),
 	"auth": z.Struct(z.Shape{
 		"realm": z.String().Default("tip").Min(1),
-		"users": z.Slice(z.Struct(z.Shape{
-			"name":     z.String().Required().Min(1),
-			"password": z.String().Required().Min(1),
-		})),
+		"users": stringMap(),
 	}),
 	"logging": z.Struct(z.Shape{
 		"level":  z.String().Default("info").OneOf([]string{"debug", "info", "warn", "error"}),

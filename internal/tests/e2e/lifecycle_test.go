@@ -173,7 +173,7 @@ func TestMaxConnectionsBlocksTheNextClient(t *testing.T) {
 }
 
 func TestPermissiveConfigWithCredentialsWarns(t *testing.T) {
-	p := launch(t, buildTip(t), baseYAML+"auth:\n  users:\n    - {name: alice, password: secret}\n", 0o644)
+	p := launch(t, buildTip(t), baseYAML+"auth:\n  users:\n    alice: secret\n", 0o644)
 	if !strings.Contains(p.output(), "readable by other users") {
 		t.Fatalf("logs:\n%s", p.output())
 	}

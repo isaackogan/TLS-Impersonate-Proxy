@@ -9,14 +9,13 @@ import (
 func TestNewPolicyValidates(t *testing.T) {
 	cases := []struct {
 		name     string
-		defaults []string
+		defaults map[string]string
 		deny     []string
 		wantErr  bool
 	}{
-		{"ok", []string{"Browser: Chrome", "X-Tip-Os: IOS,Android"}, []string{"Proxy", "x-tip-dns"}, false},
-		{"bad default value", []string{"Browser: Safari"}, nil, true},
-		{"bad default line", []string{"Browser Chrome"}, nil, true},
-		{"unknown default", []string{"Colour: red"}, nil, true},
+		{"ok", map[string]string{"Browser": "Chrome", "X-Tip-Os": "IOS,Android"}, []string{"Proxy", "x-tip-dns"}, false},
+		{"bad default value", map[string]string{"Browser": "Safari"}, nil, true},
+		{"unknown default", map[string]string{"Colour": "red"}, nil, true},
 		{"unknown deny", nil, []string{"Colour"}, true},
 	}
 	for _, tc := range cases {

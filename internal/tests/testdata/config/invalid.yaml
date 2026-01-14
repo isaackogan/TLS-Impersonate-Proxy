@@ -6,7 +6,7 @@ encoding:
   mode: maybe
 auth:
   users:
-    - name: bob
+    bob: ""
 metrics:
   routes:
     - name: Bad-Name

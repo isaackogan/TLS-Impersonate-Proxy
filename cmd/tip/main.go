@@ -68,7 +68,7 @@ func run(path string) error {
 		CA:            ca,
 		CertCacheSize: cfg.Tls.CertCacheSize,
 		ClientHttp2:   cfg.Tls.ClientHttp2,
-		Auth:          proxy.Auth{Realm: cfg.Auth.Realm, Users: users(cfg.Auth.Users)},
+		Auth:          proxy.Auth{Realm: cfg.Auth.Realm, Users: cfg.Auth.Users},
 		Encoding:      cfg.Encoding.Mode,
 		Timeout:       cfg.Upstream.Timeout,
 		ServeCa:       cfg.Server.ServeCa,
@@ -133,14 +133,6 @@ func sweep(ctx context.Context, cache *impersonate.Cache, every time.Duration) {
 			cache.Sweep(now)
 		}
 	}
-}
-
-func users(list []config.User) map[string]string {
-	out := make(map[string]string, len(list))
-	for _, u := range list {
-		out[u.Name] = u.Password
-	}
-	return out
 }
 
 func routes(list []config.Route) []metrics.Route {

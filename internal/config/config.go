@@ -37,8 +37,8 @@ type Upstream struct {
 }
 
 type Directives struct {
-	Defaults []string `zog:"defaults"`
-	Deny     []string `zog:"deny"`
+	Defaults map[string]string `zog:"defaults"`
+	Deny     []string          `zog:"deny"`
 }
 
 type Clients struct {
@@ -51,13 +51,8 @@ type Encoding struct {
 }
 
 type Auth struct {
-	Realm string `zog:"realm"`
-	Users []User `zog:"users"`
-}
-
-type User struct {
-	Name     string `zog:"name"`
-	Password string `zog:"password"`
+	Realm string            `zog:"realm"`
+	Users map[string]string `zog:"users"`
 }
 
 type Logging struct {

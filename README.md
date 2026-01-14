@@ -150,10 +150,10 @@ Upstream proxies, kept headers, HTTP/2 settings, random OS, inference, error han
 
 ```yaml
 directives:
-  defaults: ["Browser: Chrome", "Os: Random"]
+  defaults: {Browser: Chrome, Os: Random}
   deny: [Proxy, InterfaceAddr]
 auth:
-  users: [{name: alice, password: secret}]
+  users: {alice: secret}
 ```
 
 One YAML file, every key optional, unknown keys rejected at startup. [tip.example.yaml](docs/tip.example.yaml) lists every key with its default and is the reference.

@@ -1,8 +1,6 @@
 package config
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -10,7 +8,6 @@ import (
 
 	z "github.com/Oudwins/zog"
 	"github.com/Oudwins/zog/conf"
-	"github.com/Oudwins/zog/parsers/zjson"
 	"github.com/Oudwins/zog/zconst"
 	"go.yaml.in/yaml/v3"
 )
@@ -46,12 +43,8 @@ func Load(path string) (Config, error) {
 	if unknown := unknownKeys(doc, reflect.TypeFor[Config](), ""); len(unknown) > 0 {
 		return Config{}, fmt.Errorf("%s: unknown keys: %s", path, strings.Join(unknown, ", "))
 	}
-	encoded, err := json.Marshal(doc)
-	if err != nil {
-		return Config{}, fmt.Errorf("%s: %w", path, err)
-	}
 	var cfg Config
-	if issues := schema.Parse(zjson.Decode(bytes.NewReader(encoded)), &cfg, z.WithIssueFormatter(formatIssue)); len(issues) > 0 {
+	if issues := schema.Parse(doc, &cfg, z.WithIssueFormatter(formatIssue)); len(issues) > 0 {
 		return Config{}, InvalidError{issues}
 	}
 	if cfg.Logging.Redact == nil {

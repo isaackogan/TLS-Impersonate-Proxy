@@ -42,7 +42,9 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 
-# The tip.yaml document, verbatim. Every key tip.yaml accepts is accepted here.
+# The tip.yaml document, verbatim. Every key tip.yaml accepts is accepted here, for example:
+#   directives: {defaults: {Browser: Chrome, Os: Random}, deny: [Proxy]}
+#   auth: {users: {alice: secret}}   # better supplied through --set or a values file kept out of git
 # replicaCount above 1 needs a ReadWriteMany claim, or every replica mints its own CA.
 config:
   server:

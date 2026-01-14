@@ -21,7 +21,7 @@ upstream:
   timeout: 30s                 # ceiling on time to response headers; X-Tip-Timeout can only shorten it
 
 directives:
-  defaults: []                 # header lines applied when the request omits the directive, e.g. "Browser: Chrome"
+  defaults: {}                 # directive values applied when the request omits them, e.g. {Browser: Chrome, Os: Random}
   deny: []                     # directives clients may not send, e.g. [Proxy, InterfaceAddr, Dns, DnsOverTls]
 
 clients:
@@ -33,7 +33,7 @@ encoding:
 
 auth:
   realm: tip
-  users: []                    # - {name: alice, password: secret}; empty disables proxy authentication
+  users: {}                    # {alice: secret}; empty disables proxy authentication
 
 logging:
   level: info                  # debug | info | warn | error

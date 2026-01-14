@@ -67,10 +67,10 @@ func TestFullFile(t *testing.T) {
 	if !cfg.Tls.ClientHttp2 || cfg.Tls.CertCacheSize != 10 {
 		t.Fatalf("tls %+v", cfg.Tls)
 	}
-	if len(cfg.Directives.Defaults) != 2 || cfg.Directives.Deny[1] != "InterfaceAddr" {
+	if cfg.Directives.Defaults["Browser"] != "Chrome" || cfg.Directives.Defaults["X-Tip-Os"] != "Random" || cfg.Directives.Deny[1] != "InterfaceAddr" {
 		t.Fatalf("directives %+v", cfg.Directives)
 	}
-	if len(cfg.Auth.Users) != 1 || cfg.Auth.Users[0].Password != "secret" {
+	if len(cfg.Auth.Users) != 1 || cfg.Auth.Users["alice"] != "secret" {
 		t.Fatalf("auth %+v", cfg.Auth)
 	}
 	if cfg.Metrics.Collectors.Latency || !cfg.Metrics.Collectors.Tunnels {
@@ -100,7 +100,7 @@ func TestInvalidValuesReportEveryIssue(t *testing.T) {
 		t.Fatalf("expected InvalidError, got %v", err)
 	}
 	msg := err.Error()
-	for _, want := range []string{"server.shutdown_grace", "clients.max", "encoding.mode", "auth.users[0].password", "metrics.routes[0].name", "metrics.routes[0].path"} {
+	for _, want := range []string{"server.shutdown_grace", "clients.max", "encoding.mode", "auth.users[\"bob\"]", "metrics.routes[0].name", "metrics.routes[0].path"} {
 		if !strings.Contains(msg, want) {
 			t.Errorf("issues lack %q:\n%s", want, msg)
 		}

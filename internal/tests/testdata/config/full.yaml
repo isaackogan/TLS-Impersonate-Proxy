@@ -16,8 +16,8 @@ upstream:
   timeout: 45s
 directives:
   defaults:
-    - "Browser: Chrome"
-    - "X-Tip-Os: Random"
+    Browser: Chrome
+    X-Tip-Os: Random
   deny: [Proxy, InterfaceAddr]
 clients:
   max: 5
@@ -27,8 +27,7 @@ encoding:
 auth:
   realm: lab
   users:
-    - name: alice
-      password: secret
+    alice: secret
 logging:
   level: debug
   format: text
