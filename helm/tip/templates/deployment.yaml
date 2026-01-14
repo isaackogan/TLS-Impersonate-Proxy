@@ -42,13 +42,25 @@ spec:
               readOnly: true
             - name: ca
               mountPath: /var/lib/tip
+              {{- if include "tip.caSecret" . }}
+              readOnly: true
+              {{- end }}
           resources: {{- toYaml .Values.resources | nindent 12 }}
       volumes:
         - name: config
           configMap:
             name: {{ include "tip.fullname" . }}
         - name: ca
-          {{- if .Values.persistence.enabled }}
+          {{- if include "tip.caSecret" . }}
+          secret:
+            secretName: {{ include "tip.caSecret" . }}
+            defaultMode: 0440
+            items:
+              - key: {{ .Values.ca.certKey }}
+                path: ca.pem
+              - key: {{ .Values.ca.keyKey }}
+                path: ca.key
+          {{- else if .Values.persistence.enabled }}
           persistentVolumeClaim:
             claimName: {{ .Values.persistence.existingClaim | default (include "tip.fullname" .) }}
           {{- else }}

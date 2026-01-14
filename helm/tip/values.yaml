@@ -14,6 +14,18 @@ admin:
     enabled: true
     port: 9090
 
+# The CA can come from a Secret instead of being generated on a volume.
+# existingSecret names a Secret holding the certificate and key under certKey and keyKey.
+# cert and key, given inline (for example with --set-file ca.cert=ca.pem --set-file ca.key=ca.key),
+# make the chart create that Secret itself. Either way persistence is unused and the mount is read-only.
+ca:
+  existingSecret: ""
+  cert: ""
+  key: ""
+  certKey: ca.pem
+  keyKey: ca.key
+
+# Used only when no CA Secret is configured: TIP generates a CA on this volume at first start.
 persistence:
   enabled: true
   size: 16Mi

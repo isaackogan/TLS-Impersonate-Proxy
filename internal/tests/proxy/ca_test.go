@@ -29,7 +29,11 @@ func TestLoadOrCreateCA(t *testing.T) {
 	}
 	os.Chmod(key, 0o644)
 	if _, _, err := proxy.LoadOrCreateCA(cert, key); err == nil {
-		t.Fatal("expected refusal for a readable key")
+		t.Fatal("expected refusal for a world-readable key")
+	}
+	os.Chmod(key, 0o440)
+	if _, _, err := proxy.LoadOrCreateCA(cert, key); err != nil {
+		t.Fatalf("group-readable key from a mounted secret must load: %v", err)
 	}
 	os.Remove(key)
 	if _, _, err := proxy.LoadOrCreateCA(cert, key); err == nil {

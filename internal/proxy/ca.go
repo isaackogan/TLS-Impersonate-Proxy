@@ -31,8 +31,8 @@ func LoadOrCreateCA(certPath, keyPath string) (tls.Certificate, bool, error) {
 	case keyErr != nil:
 		return tls.Certificate{}, false, keyErr
 	}
-	if keyInfo.Mode().Perm()&0o077 != 0 {
-		return tls.Certificate{}, false, fmt.Errorf("%s is readable by other users; make it 0600", keyPath)
+	if keyInfo.Mode().Perm()&0o007 != 0 {
+		return tls.Certificate{}, false, fmt.Errorf("%s is world-readable; make it 0600, or 0440 when mounted from a secret", keyPath)
 	}
 	ca, err := tls.LoadX509KeyPair(certPath, keyPath)
 	return ca, false, err

@@ -1,6 +1,11 @@
-TIP is running. Fetch the CA from inside the cluster:
+TIP is running.
+{{- if include "tip.caSecret" . }}
+The CA is mounted from Secret {{ include "tip.caSecret" . }}; clients trust its certificate.
+{{- else }}
+The CA was generated on the volume at first start. Fetch it from inside the cluster:
 
   kubectl run -it --rm curl --image=curlimages/curl --restart=Never -- \
     curl -s http://{{ include "tip.fullname" . }}:{{ .Values.service.port }}/ca.pem
+{{- end }}
 
 Point clients at http://{{ include "tip.fullname" . }}:{{ .Values.service.port }} and trust that certificate.

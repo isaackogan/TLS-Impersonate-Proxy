@@ -14,3 +14,6 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- $g := dig "server" "shutdown_grace" "15s" .Values.config -}}
 {{- if hasSuffix "m" $g }}{{ add (mul (trimSuffix "m" $g | int) 60) 5 }}{{ else }}{{ add (trimSuffix "s" $g | int) 5 }}{{ end -}}
 {{- end -}}
+{{- define "tip.caSecret" -}}
+{{- if .Values.ca.existingSecret }}{{ .Values.ca.existingSecret }}{{ else if and .Values.ca.cert .Values.ca.key }}{{ include "tip.fullname" . }}-ca{{ end -}}
+{{- end -}}
