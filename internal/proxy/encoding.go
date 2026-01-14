@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	"bufio"
+	"bytes"
 	"compress/gzip"
 	"compress/zlib"
 	"io"
@@ -25,27 +27,31 @@ func acceptEncodings(values []string) []string {
 	return out
 }
 
-func negotiate(mode string, accept []string, resp *http.Response) error {
+func negotiate(mode string, accept []string, resp *http.Response) {
 	encoding := strings.ToLower(strings.TrimSpace(resp.Header.Get("Content-Encoding")))
 	if encoding == "" || encoding == "identity" || mode == "passthrough" {
-		return nil
+		return
 	}
 	if mode == "negotiate" && (slices.Contains(accept, encoding) || slices.Contains(accept, "*")) {
-		return nil
+		return
 	}
 	if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusNotModified || resp.ContentLength == 0 || (resp.Request != nil && resp.Request.Method == http.MethodHead) {
-		return nil
+		return
 	}
-	body, err := decoder(encoding, resp.Body)
-	if err != nil || body == nil {
-		return err
-	}
+	body, decodable := decoder(encoding, resp.Body)
 	resp.Body = body
+	if !decodable {
+		return
+	}
 	resp.Header.Del("Content-Encoding")
 	resp.Header.Del("Content-Length")
 	resp.ContentLength = -1
 	resp.Uncompressed = true
-	return nil
+}
+
+type peeked struct {
+	*bufio.Reader
+	io.Closer
 }
 
 type decoded struct {
@@ -58,28 +64,49 @@ func (d *decoded) Close() error {
 	return d.source.Close()
 }
 
-func decoder(encoding string, body io.ReadCloser) (io.ReadCloser, error) {
+var (
+	gzipMagic = []byte{0x1f, 0x8b}
+	zstdMagic = []byte{0x28, 0xb5, 0x2f, 0xfd}
+)
+
+func decoder(encoding string, body io.ReadCloser) (io.ReadCloser, bool) {
+	source := &peeked{bufio.NewReader(body), body}
 	switch encoding {
 	case "gzip":
-		r, err := gzip.NewReader(body)
-		if err != nil {
-			return nil, err
+		if !startsWith(source.Reader, gzipMagic) {
+			return source, false
 		}
-		return &decoded{r, body}, nil
+		r, err := gzip.NewReader(source)
+		if err != nil {
+			return source, false
+		}
+		return &decoded{r, body}, true
 	case "deflate":
-		r, err := zlib.NewReader(body)
-		if err != nil {
-			return nil, err
+		head, err := source.Peek(2)
+		if err != nil || head[0]&0x0f != 8 || (uint16(head[0])<<8|uint16(head[1]))%31 != 0 {
+			return source, false
 		}
-		return &decoded{r, body}, nil
+		r, err := zlib.NewReader(source)
+		if err != nil {
+			return source, false
+		}
+		return &decoded{r, body}, true
 	case "br":
-		return &decoded{io.NopCloser(brotli.NewReader(body)), body}, nil
+		return &decoded{io.NopCloser(brotli.NewReader(source)), body}, true
 	case "zstd":
-		r, err := zstd.NewReader(body)
-		if err != nil {
-			return nil, err
+		if !startsWith(source.Reader, zstdMagic) {
+			return source, false
 		}
-		return &decoded{r.IOReadCloser(), body}, nil
+		r, err := zstd.NewReader(source)
+		if err != nil {
+			return source, false
+		}
+		return &decoded{r.IOReadCloser(), body}, true
 	}
-	return nil, nil
+	return source, false
+}
+
+func startsWith(r *bufio.Reader, magic []byte) bool {
+	head, err := r.Peek(len(magic))
+	return err == nil && bytes.Equal(head, magic)
 }

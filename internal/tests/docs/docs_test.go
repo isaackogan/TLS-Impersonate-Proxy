@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/isaackogan/tls-impersonate-proxy/internal/directive"
 )
 
 var (
@@ -82,6 +84,29 @@ func TestSnippetsEqualExamples(t *testing.T) {
 			want := read(t, filepath.Join(examplesDir, m[1]))
 			if strings.TrimSpace(m[2]) != strings.TrimSpace(want) {
 				t.Errorf("%s: snippet %s drifted from the example file", path, m[1])
+			}
+		}
+	}
+}
+
+func TestExamplesUseOnlyKnownDirectives(t *testing.T) {
+	known := map[string]bool{"error": true, "errorcount": true}
+	for _, name := range directive.Names() {
+		known[strings.ToLower(name)] = true
+	}
+	pattern := regexp.MustCompile(`X-Tip-([A-Za-z0-9]+)`)
+	for _, name := range examples(t) {
+		content := read(t, filepath.Join(examplesDir, name))
+		for _, m := range pattern.FindAllStringSubmatch(content, -1) {
+			if !known[strings.ToLower(m[1])] {
+				t.Errorf("%s uses unknown directive X-Tip-%s", name, m[1])
+			}
+		}
+	}
+	for _, path := range []string{filepath.Join(root, "README.md"), filepath.Join(root, "docs", "README.md")} {
+		for _, m := range pattern.FindAllStringSubmatch(read(t, path), -1) {
+			if !known[strings.ToLower(m[1])] {
+				t.Errorf("%s mentions unknown directive X-Tip-%s", path, m[1])
 			}
 		}
 	}

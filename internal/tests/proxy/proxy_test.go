@@ -1,7 +1,6 @@
 package proxy_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -77,7 +76,7 @@ type harness struct {
 	proxy    *httptest.Server
 	client   *http.Client
 	obs      *recording
-	logs     *bytes.Buffer
+	logs     *testutil.SyncBuffer
 }
 
 func newHarness(t *testing.T, mutate func(*proxy.Options)) *harness {
@@ -94,7 +93,7 @@ func newHarnessWithPolicy(t *testing.T, policy directive.Policy) *harness {
 func build(t *testing.T, policy directive.Policy, mutate func(*proxy.Options)) *harness {
 	t.Helper()
 	ca, pool := testutil.TempCA(t)
-	logs := &bytes.Buffer{}
+	logs := &testutil.SyncBuffer{}
 	log := slog.New(slog.NewJSONHandler(logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	cache := impersonate.NewCache(impersonate.CacheOptions{Max: 8, IdleTtl: time.Hour}, func(s directive.Spec) (*impersonate.Client, error) {
 		return impersonate.Build(s, impersonate.Options{ResponseHeaderTimeout: 5 * time.Second})

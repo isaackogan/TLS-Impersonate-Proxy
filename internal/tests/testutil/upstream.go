@@ -2,16 +2,20 @@ package testutil
 
 import (
 	"compress/gzip"
+	"compress/zlib"
 	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/andybalholm/brotli"
 	"github.com/coder/websocket"
+	"github.com/klauspost/compress/zstd"
 )
 
 type Recorded struct {
@@ -43,8 +47,44 @@ func (u *Upstream) serve(w http.ResponseWriter, r *http.Request) {
 	u.mu.Lock()
 	u.requests = append(u.requests, Recorded{r.Method, r.URL.Path, r.Proto, r.Header.Clone(), body})
 	u.mu.Unlock()
-	if r.URL.Path == "/ws" {
+	switch {
+	case r.URL.Path == "/ws":
 		echoWebSocket(w, r)
+		return
+	case r.URL.Path == "/redirect":
+		http.Redirect(w, r, "https://example.invalid/landing", http.StatusFound)
+		return
+	case r.URL.Path == "/cookies":
+		http.SetCookie(w, &http.Cookie{Name: "a", Value: "1", Path: "/"})
+		http.SetCookie(w, &http.Cookie{Name: "b", Value: "2", Path: "/", HttpOnly: true})
+		w.WriteHeader(http.StatusOK)
+		return
+	case r.URL.Path == "/status":
+		if code, err := strconv(r.URL.Query().Get("code")); err == nil {
+			if r.Header.Get("X-Upstream-Encoding") != "" {
+				w.Header().Set("Content-Encoding", r.Header.Get("X-Upstream-Encoding"))
+			}
+			w.WriteHeader(code)
+			return
+		}
+	case r.URL.Path == "/sse":
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+		io.WriteString(w, "data: first\n\n")
+		w.(http.Flusher).Flush()
+		time.Sleep(400 * time.Millisecond)
+		io.WriteString(w, "data: second\n\n")
+		return
+	case strings.HasPrefix(r.URL.Path, "/large/"):
+		n, _ := strconv(strings.TrimPrefix(r.URL.Path, "/large/"))
+		w.Header().Set("Content-Type", "application/octet-stream")
+		chunk := make([]byte, 64*1024)
+		for written := 0; written < n; written += len(chunk) {
+			if remaining := n - written; remaining < len(chunk) {
+				chunk = chunk[:remaining]
+			}
+			w.Write(chunk)
+		}
 		return
 	}
 	if d, err := time.ParseDuration(r.Header.Get("X-Upstream-Delay")); err == nil {
@@ -52,11 +92,8 @@ func (u *Upstream) serve(w http.ResponseWriter, r *http.Request) {
 	}
 	payload, _ := json.Marshal(map[string]any{"proto": r.Proto, "headers": r.Header, "path": r.URL.Path, "body": string(body)})
 	w.Header().Set("Content-Type", "application/json")
-	if r.Header.Get("X-Upstream-Encoding") == "gzip" {
-		w.Header().Set("Content-Encoding", "gzip")
-		zw := gzip.NewWriter(w)
-		zw.Write(payload)
-		zw.Close()
+	if encoding := r.Header.Get("X-Upstream-Encoding"); encoding != "" {
+		writeEncoded(w, encoding, payload)
 		return
 	}
 	if d, err := time.ParseDuration(r.Header.Get("X-Upstream-Body-Delay")); err == nil {
@@ -65,6 +102,53 @@ func (u *Upstream) serve(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(d)
 	}
 	w.Write(payload)
+}
+
+func writeEncoded(w http.ResponseWriter, encoding string, payload []byte) {
+	switch encoding {
+	case "gzip":
+		w.Header().Set("Content-Encoding", "gzip")
+		zw := gzip.NewWriter(w)
+		zw.Write(payload)
+		zw.Close()
+	case "deflate":
+		w.Header().Set("Content-Encoding", "deflate")
+		zw := zlib.NewWriter(w)
+		zw.Write(payload)
+		zw.Close()
+	case "br":
+		w.Header().Set("Content-Encoding", "br")
+		bw := brotli.NewWriter(w)
+		bw.Write(payload)
+		bw.Close()
+	case "zstd":
+		w.Header().Set("Content-Encoding", "zstd")
+		zw, _ := zstd.NewWriter(w)
+		zw.Write(payload)
+		zw.Close()
+	case "bogus-gzip":
+		w.Header().Set("Content-Encoding", "gzip")
+		w.Write(payload)
+	case "multi":
+		w.Header().Set("Content-Encoding", "gzip, br")
+		w.Write(payload)
+	default:
+		w.Write(payload)
+	}
+}
+
+func strconv(s string) (int, error) {
+	n := 0
+	if s == "" {
+		return 0, io.ErrUnexpectedEOF
+	}
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return 0, io.ErrUnexpectedEOF
+		}
+		n = n*10 + int(c-'0')
+	}
+	return n, nil
 }
 
 func echoWebSocket(w http.ResponseWriter, r *http.Request) {

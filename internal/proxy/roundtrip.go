@@ -49,6 +49,9 @@ func (rt *roundTripper) RoundTrip(req *http.Request, _ *goproxy.ProxyCtx) (*http
 		cancel()
 		rt.client.Release()
 		kind := impersonate.Classify(err)
+		if kind == "dial" && st.spec.Proxy != "" {
+			kind = "proxy"
+		}
 		s.obs.UpstreamError(st.host, kind)
 		s.log.Warn("upstream failed", "host", st.host, "path", st.path, "kind", kind, "error", err.Error())
 		resp = badGateway(req, kind, err)
@@ -59,9 +62,7 @@ func (rt *roundTripper) RoundTrip(req *http.Request, _ *goproxy.ProxyCtx) (*http
 	var out atomic.Int64
 	resp.Body = countReads(resp.Body, &out)
 	if resp.StatusCode != http.StatusSwitchingProtocols {
-		if err := negotiate(s.opts.Encoding, st.accept, resp); err != nil {
-			s.log.Warn("decode response", "host", st.host, "error", err.Error())
-		}
+		negotiate(s.opts.Encoding, st.accept, resp)
 	}
 	status := resp.StatusCode
 	resp.Body = onClose(resp.Body, func() {
