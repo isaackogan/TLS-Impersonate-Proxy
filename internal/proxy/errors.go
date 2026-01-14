@@ -20,6 +20,13 @@ func badGateway(req *http.Request, kind string, err error) *http.Response {
 	return synthetic(req, http.StatusBadGateway, h)
 }
 
+func unavailable(req *http.Request) *http.Response {
+	h := http.Header{}
+	h.Set("X-Tip-Error", "shutting down")
+	h.Set("Connection", "close")
+	return synthetic(req, http.StatusServiceUnavailable, h)
+}
+
 func synthetic(req *http.Request, status int, h http.Header) *http.Response {
 	h.Set("Content-Length", "0")
 	return &http.Response{

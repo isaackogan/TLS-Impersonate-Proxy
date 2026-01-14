@@ -115,6 +115,9 @@ func run(path string) error {
 	graceCtx, cancel := context.WithTimeout(context.Background(), cfg.Server.ShutdownGrace)
 	defer cancel()
 	proxyServer.Shutdown(graceCtx)
+	if err := srv.Drain(graceCtx); err != nil {
+		log.Warn("shutdown cut requests short", "error", err.Error())
+	}
 	adminServer.Shutdown(graceCtx)
 	return nil
 }

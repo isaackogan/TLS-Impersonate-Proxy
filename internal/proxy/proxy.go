@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"math/rand/v2"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/elazarl/goproxy"
@@ -49,9 +50,11 @@ type Server struct {
 	clients Clients
 	obs     Observer
 	log     *slog.Logger
-	caPEM   []byte
-	tlsFor  func(host string, ctx *goproxy.ProxyCtx) (*tls.Config, error)
-	pick    func(int) int
+	caPEM    []byte
+	tlsFor   func(host string, ctx *goproxy.ProxyCtx) (*tls.Config, error)
+	pick     func(int) int
+	active   atomic.Int64
+	draining atomic.Bool
 }
 
 type goproxyLogger struct{ *slog.Logger }
@@ -95,6 +98,22 @@ func New(o Options, policy directive.Policy, clients Clients, obs Observer, log 
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) { s.proxy.ServeHTTP(w, r) }
+
+func (s *Server) Drain(ctx context.Context) error {
+	s.draining.Store(true)
+	ticker := time.NewTicker(50 * time.Millisecond)
+	defer ticker.Stop()
+	for s.active.Load() > 0 {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("drain: %d requests still active: %w", s.active.Load(), ctx.Err())
+		case <-ticker.C:
+		}
+	}
+	return nil
+}
+
+func (s *Server) Active() int64 { return s.active.Load() }
 
 func (s *Server) CAHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

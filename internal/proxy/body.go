@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"errors"
 	"io"
 	"sync"
 	"sync/atomic"
@@ -48,3 +49,25 @@ func preserveWriter(original, wrapped io.ReadCloser) io.ReadCloser {
 	}
 	return wrapped
 }
+
+type replayable struct {
+	io.ReadCloser
+	consumed atomic.Bool
+}
+
+func (b *replayable) Read(p []byte) (int, error) {
+	n, err := b.ReadCloser.Read(p)
+	if n > 0 {
+		b.consumed.Store(true)
+	}
+	return n, err
+}
+
+func (b *replayable) replay() (io.ReadCloser, error) {
+	if b.consumed.Load() {
+		return nil, errBodyConsumed
+	}
+	return b, nil
+}
+
+var errBodyConsumed = errors.New("request body already streamed upstream")

@@ -38,8 +38,10 @@ func (rt *roundTripper) RoundTrip(req *http.Request, _ *goproxy.ProxyCtx) (*http
 		ctx = impersonate.WithKeep(ctx, st.original, st.directive.Keep)
 	}
 	req = req.WithContext(ctx)
-	if req.Body != nil && req.Body != http.NoBody {
-		req.Body = countReads(req.Body, &st.bytesIn)
+	if req.Body != nil {
+		body := &replayable{ReadCloser: countReads(req.Body, &st.bytesIn)}
+		req.Body = body
+		req.GetBody = body.replay
 	}
 	resp, err := rt.client.RoundTrip(req)
 	if timer != nil {
@@ -86,6 +88,7 @@ func (s *Server) logOutbound(st *state) {
 }
 
 func (s *Server) finish(st *state, status int, bytesOut int64) {
+	defer s.active.Add(-1)
 	route := s.obs.Route(st.host, st.path)
 	ev := RequestEvent{
 		Host:     st.host,

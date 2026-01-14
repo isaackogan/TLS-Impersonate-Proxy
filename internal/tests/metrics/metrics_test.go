@@ -60,3 +60,26 @@ func TestCollectorsAndLabels(t *testing.T) {
 		t.Errorf("route %q", got)
 	}
 }
+
+func TestInflightReturnsToZeroAndPartialCollectors(t *testing.T) {
+	m, err := metrics.New(metrics.Options{Collectors: metrics.Collectors{Requests: true, Bandwidth: false}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.RequestStarted()
+	m.RequestStarted()
+	m.RequestFinished(metrics.Request{Host: "h", Method: "GET", Status: 200})
+	m.RequestFinished(metrics.Request{Host: "h", Method: "GET", Status: 200})
+	if out := scrape(t, m); !strings.Contains(out, "tip_requests_inflight 0") {
+		t.Fatalf("inflight not back to zero:\n%s", out)
+	}
+	only, err := metrics.New(metrics.Options{Collectors: metrics.Collectors{Bandwidth: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	only.RequestStarted()
+	only.RequestFinished(metrics.Request{Host: "h", Method: "GET", Status: 200, BytesOut: 5})
+	if out := scrape(t, only); !strings.Contains(out, `tip_bandwidth_bytes_total{direction="out",host="h",route=""} 5`) || strings.Contains(out, "tip_requests_total") {
+		t.Fatalf("bandwidth-only registry:\n%s", out)
+	}
+}

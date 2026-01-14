@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -15,7 +16,21 @@ import (
 )
 
 type tunnel struct {
+	mu    sync.Mutex
 	picks map[string]string
+}
+
+func (t *tunnel) pick(key string) (string, bool) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	os, ok := t.picks[key]
+	return os, ok
+}
+
+func (t *tunnel) remember(key, os string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.picks[key] = os
 }
 
 type state struct {
@@ -34,6 +49,10 @@ type state struct {
 }
 
 func (s *Server) onRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+	if s.draining.Load() {
+		return req, unavailable(req)
+	}
+	s.active.Add(1)
 	t, _ := ctx.UserData.(*tunnel)
 	st := &state{started: time.Now(), tunnel: t, method: req.Method, host: req.URL.Hostname(), path: req.URL.Path, scheme: req.URL.Scheme}
 	ctx.UserData = st
@@ -84,14 +103,14 @@ func (s *Server) resolve(t *tunnel, d directive.Directive) directive.Directive {
 	}
 	key := strings.Join(d.Os, ",")
 	if t != nil {
-		if os, ok := t.picks[key]; ok {
+		if os, ok := t.pick(key); ok {
 			d.Os = []string{os}
 			return d
 		}
 	}
 	d = d.Resolve(s.pick)
 	if t != nil {
-		t.picks[key] = d.Os[0]
+		t.remember(key, d.Os[0])
 	}
 	return d
 }

@@ -74,6 +74,7 @@ func (c cacheSource) Get(s directive.Spec) (proxy.Client, error) { return c.Cach
 type harness struct {
 	upstream *testutil.Upstream
 	proxy    *httptest.Server
+	server   *proxy.Server
 	client   *http.Client
 	obs      *recording
 	logs     *testutil.SyncBuffer
@@ -110,7 +111,7 @@ func build(t *testing.T, policy directive.Policy, mutate func(*proxy.Options)) *
 	}
 	ps := httptest.NewServer(srv)
 	t.Cleanup(ps.Close)
-	return &harness{upstream: testutil.NewUpstream(t), proxy: ps, client: testutil.ProxyClient(t, ps.URL, pool), obs: obs, logs: logs}
+	return &harness{upstream: testutil.NewUpstream(t), proxy: ps, server: srv, client: testutil.ProxyClient(t, ps.URL, pool), obs: obs, logs: logs}
 }
 
 func (h *harness) get(t *testing.T, url string, headers ...string) (*http.Response, map[string]any) {

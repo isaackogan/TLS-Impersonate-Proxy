@@ -4,8 +4,10 @@ import (
 	"compress/gzip"
 	"compress/zlib"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -34,9 +36,34 @@ type Upstream struct {
 
 func NewUpstream(t testing.TB) *Upstream {
 	t.Helper()
+	return newUpstream(t, func(*httptest.Server) {})
+}
+
+func NewUpstreamHTTP1(t testing.TB) *Upstream {
+	t.Helper()
+	return newUpstream(t, func(s *httptest.Server) { s.EnableHTTP2 = false })
+}
+
+func NewUpstreamTLS12(t testing.TB) *Upstream {
+	t.Helper()
+	return newUpstream(t, func(s *httptest.Server) { s.TLS = &tls.Config{MaxVersion: tls.VersionTLS12} })
+}
+
+func NewUpstreamIPv6(t testing.TB) *Upstream {
+	t.Helper()
+	ln, err := net.Listen("tcp6", "[::1]:0")
+	if err != nil {
+		t.Skipf("no IPv6 loopback: %v", err)
+	}
+	return newUpstream(t, func(s *httptest.Server) { s.Listener.Close(); s.Listener = ln })
+}
+
+func newUpstream(t testing.TB, configure func(*httptest.Server)) *Upstream {
+	t.Helper()
 	u := &Upstream{}
 	u.Server = httptest.NewUnstartedServer(http.HandlerFunc(u.serve))
 	u.Server.EnableHTTP2 = true
+	configure(u.Server)
 	u.Server.StartTLS()
 	t.Cleanup(u.Server.Close)
 	return u
