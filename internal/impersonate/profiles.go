@@ -15,9 +15,25 @@ type family struct {
 	name    string
 	oses    []string
 	base    func(*surf.Impersonate) *surf.Builder
+	variant func(mobile bool) profiles.Variant
+	hints   bool
 	agent   func(os string) string
 	headers func(os string) map[string]string
 	detect  []string
+}
+
+func chromeVariant(mobile bool) profiles.Variant {
+	if mobile {
+		return chrome.Mobile
+	}
+	return chrome.Desktop
+}
+
+func firefoxVariant(mobile bool) profiles.Variant {
+	if mobile {
+		return firefox.Mobile
+	}
+	return firefox.Desktop
 }
 
 var osKeys = map[string]profiles.OSKey{
@@ -53,23 +69,28 @@ func edgeHeaders(os string) map[string]string {
 
 var families = map[string]*family{
 	"chrome": {
-		name:   "chrome",
-		oses:   allOses,
-		base:   (*surf.Impersonate).Chrome,
-		agent:  chromeAgent,
-		detect: []string{"Chrome/", "CriOS/", "Chromium/"},
+		name:    "chrome",
+		oses:    allOses,
+		base:    (*surf.Impersonate).Chrome,
+		variant: chromeVariant,
+		hints:   true,
+		agent:   chromeAgent,
+		detect:  []string{"Chrome/", "CriOS/", "Chromium/"},
 	},
 	"firefox": {
-		name:   "firefox",
-		oses:   allOses,
-		base:   (*surf.Impersonate).Firefox,
-		agent:  firefoxAgent,
-		detect: []string{"Firefox/", "FxiOS/"},
+		name:    "firefox",
+		oses:    allOses,
+		base:    (*surf.Impersonate).Firefox,
+		variant: firefoxVariant,
+		agent:   firefoxAgent,
+		detect:  []string{"Firefox/", "FxiOS/"},
 	},
 	"edge": {
 		name:    "edge",
 		oses:    []string{"windows", "macos", "linux", "android"},
 		base:    (*surf.Impersonate).Chrome,
+		variant: chromeVariant,
+		hints:   true,
 		agent:   edgeAgent,
 		headers: edgeHeaders,
 		detect:  []string{"Edg/", "EdgA/", "EdgiOS/"},
