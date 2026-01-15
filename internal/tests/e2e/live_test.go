@@ -128,6 +128,16 @@ func TestLiveFingerprints(t *testing.T) {
 		}
 	})
 
+	edge := observe(t, client, "X-Tip-Browser", "Edge", "X-Tip-Os", "Windows")
+	t.Run("edge shares chrome's fingerprint with its own identity", func(t *testing.T) {
+		if !strings.HasSuffix(edge.UserAgent, "Edg/152.0.0.0") {
+			t.Errorf("user agent %q", edge.UserAgent)
+		}
+		if edge.HTTP2.Akamai != chromeAkamai || edge.TLS.JA4 != chrome.TLS.JA4 {
+			t.Errorf("edge akamai %q ja4 %q, want chrome's %q %q", edge.HTTP2.Akamai, edge.TLS.JA4, chromeAkamai, chrome.TLS.JA4)
+		}
+	})
+
 	tuned := observe(t, client, "X-Tip-Browser", "Chrome", "X-Tip-Http2Settings", "HeaderTableSize=4096; EnablePush=0; InitialWindowSize=65535")
 	t.Run("http2 settings directive reaches the wire", func(t *testing.T) {
 		if !strings.HasPrefix(tuned.HTTP2.Akamai, "1:4096;2:0;4:65535|") || !strings.HasSuffix(tuned.HTTP2.Akamai, "|m,a,s,p") {

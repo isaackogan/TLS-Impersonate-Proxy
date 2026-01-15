@@ -37,7 +37,7 @@ func lowercase(s *string, _ z.Ctx) error {
 }
 
 var (
-	browsers     = newEnum("Chrome", "Firefox")
+	browsers     = newEnum("Chrome", "Firefox", "Edge")
 	oses         = newEnum("Windows", "MacOS", "Linux", "Android", "IOS", "Random")
 	concreteOs   = oses.lower[:5]
 	jaPresets    = newEnum("Android", "Chrome", "Chrome58", "Chrome62", "Chrome70", "Chrome72", "Chrome83", "Chrome87", "Chrome96", "Chrome100", "Chrome102", "Chrome106", "Chrome120", "Chrome120PQ", "Chrome152", "Edge", "Edge85", "Edge106", "Firefox", "Firefox55", "Firefox56", "Firefox63", "Firefox65", "Firefox99", "Firefox102", "Firefox105", "Firefox120", "Firefox148", "IOS", "IOS11", "IOS12", "IOS13", "IOS14", "Randomized", "RandomizedALPN", "RandomizedNoALPN", "Safari")

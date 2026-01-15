@@ -8,15 +8,25 @@ import (
 )
 
 func TestResolveIsDeterministicGivenPick(t *testing.T) {
+	all := directive.ConcreteOs()
 	d, _ := directive.Parse(headers("X-Tip-Os", "ios,android"), mustPolicy(t, nil, nil))
-	r := d.Resolve(func(n int) int { return n - 1 })
-	if len(r.Os) != 1 || r.Os[0] != "android" {
-		t.Fatalf("%v", r.Os)
+	r, ok := d.Resolve(all, func(n int) int { return n - 1 })
+	if !ok || len(r.Os) != 1 || r.Os[0] != "android" {
+		t.Fatalf("%v %v", r.Os, ok)
 	}
 	d, _ = directive.Parse(headers("X-Tip-Os", "random"), mustPolicy(t, nil, nil))
-	r = d.Resolve(func(int) int { return 2 })
+	r, _ = d.Resolve(all, func(int) int { return 2 })
 	if r.Os[0] != "linux" {
 		t.Fatalf("%v", r.Os)
+	}
+	desktop := []string{"windows", "macos", "linux"}
+	r, ok = d.Resolve(desktop, func(int) int { return 2 })
+	if !ok || r.Os[0] != "linux" {
+		t.Fatalf("random within a subset: %v %v", r.Os, ok)
+	}
+	d, _ = directive.Parse(headers("X-Tip-Os", "ios"), mustPolicy(t, nil, nil))
+	if _, ok := d.Resolve(desktop, func(int) int { return 0 }); ok {
+		t.Fatal("an unavailable os must not resolve")
 	}
 }
 

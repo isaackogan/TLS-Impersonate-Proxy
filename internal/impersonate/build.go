@@ -52,7 +52,23 @@ func JaPresets() []string {
 func Build(s directive.Spec, o Options) (*Client, error) {
 	b := surf.NewClient().Builder()
 	if s.Browser != "" {
-		b = impersonate(b.Impersonate(), s)
+		f, ok := families[s.Browser]
+		if !ok {
+			return nil, fmt.Errorf("unknown browser %q", s.Browser)
+		}
+		if s.Os != "" && !slices.Contains(f.oses, s.Os) {
+			return nil, fmt.Errorf("%s is not available on %s", s.Browser, s.Os)
+		}
+		b = f.base(impersonateOs(b.Impersonate(), s.Os))
+		if f.headers != nil {
+			overrides := f.headers(s.Os)
+			b = b.With(func(req *surf.Request) error {
+				for name, value := range overrides {
+					req.GetRequest().Header.Set(name, value)
+				}
+				return nil
+			}, 1)
+		}
 	}
 	if s.Ja != "" {
 		preset, ok := jaPresets[s.Ja]
@@ -109,23 +125,20 @@ func Build(s directive.Spec, o Options) (*Client, error) {
 	return &Client{Key: s.Key(), transport: cli.Std().Transport, closer: cli}, nil
 }
 
-func impersonate(im *surf.Impersonate, s directive.Spec) *surf.Builder {
-	switch s.Os {
+func impersonateOs(im *surf.Impersonate, os string) *surf.Impersonate {
+	switch os {
 	case "windows":
-		im = im.Windows()
+		return im.Windows()
 	case "macos":
-		im = im.MacOS()
+		return im.MacOS()
 	case "linux":
-		im = im.Linux()
+		return im.Linux()
 	case "android":
-		im = im.Android()
+		return im.Android()
 	case "ios":
-		im = im.IOS()
+		return im.IOS()
 	}
-	if s.Browser == "firefox" {
-		return im.Firefox()
-	}
-	return im.Chrome()
+	return im
 }
 
 func applyHttp2(h *surf.HTTP2Settings, s *directive.Http2) {

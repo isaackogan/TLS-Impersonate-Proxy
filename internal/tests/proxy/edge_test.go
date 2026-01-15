@@ -216,3 +216,22 @@ func TestConcurrentRequestsShareOneClient(t *testing.T) {
 		t.Fatalf("upstream saw %d requests", n)
 	}
 }
+
+func TestEdgeThroughProxyAndUnavailableOs(t *testing.T) {
+	h := newHarness(t, nil)
+	_, echoed := h.get(t, h.upstream.URL+"/edge", "X-Tip-Browser", "Edge", "X-Tip-Os", "Windows")
+	if ua := echoedHeader(echoed, "User-Agent"); !strings.HasSuffix(ua, "Edg/152.0.0.0") {
+		t.Fatalf("ua %q", ua)
+	}
+	resp, _ := h.get(t, h.upstream.URL+"/edge-ios", "X-Tip-Browser", "Edge", "X-Tip-Os", "IOS")
+	if resp.StatusCode != 418 || !strings.Contains(resp.Header.Get("X-Tip-Error"), "Os: ios is not available for edge") {
+		t.Fatalf("status %d headers %v", resp.StatusCode, resp.Header)
+	}
+	plain := "http" + strings.TrimPrefix(h.upstream.URL, "https")
+	for range 12 {
+		_, echoed := h.get(t, plain+"/edge-random", "X-Tip-Scheme", "https", "X-Tip-Browser", "Edge", "X-Tip-Os", "Random")
+		if ua := echoedHeader(echoed, "User-Agent"); strings.Contains(ua, "iPhone") || strings.Contains(ua, "iPad") {
+			t.Fatalf("random picked an unavailable os: %q", ua)
+		}
+	}
+}

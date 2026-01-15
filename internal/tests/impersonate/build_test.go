@@ -23,7 +23,8 @@ func spec(t *testing.T, kv ...string) directive.Spec {
 	if len(issues) > 0 {
 		t.Fatal(issues)
 	}
-	return d.Resolve(func(int) int { return 0 }).Spec()
+	r, _ := d.Resolve(directive.ConcreteOs(), func(int) int { return 0 })
+	return r.Spec()
 }
 
 func do(t *testing.T, c *impersonate.Client, req *http.Request) *http.Response {

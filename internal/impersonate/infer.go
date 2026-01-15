@@ -1,43 +1,45 @@
 package impersonate
 
-import (
-	"strings"
-
-	"github.com/enetx/surf/profiles"
-	"github.com/enetx/surf/profiles/chrome"
-	"github.com/enetx/surf/profiles/firefox"
-)
+import "strings"
 
 type Inference struct {
 	Browser string
 	Os      string
 }
 
-var osNames = map[profiles.OSKey]string{
-	profiles.Windows: "windows", profiles.MacOS: "macos", profiles.Linux: "linux", profiles.Android: "android", profiles.IOS: "ios",
+func Infer(userAgent string) Inference {
+	for _, name := range detectionOrder {
+		f := families[name]
+		for _, os := range f.oses {
+			if f.agent(os) == userAgent {
+				return Inference{name, os}
+			}
+		}
+	}
+	for _, name := range detectionOrder {
+		for _, marker := range families[name].detect {
+			if strings.Contains(userAgent, marker) {
+				return closest(name, platform(userAgent))
+			}
+		}
+	}
+	return Inference{}
 }
 
-func Infer(userAgent string) Inference {
-	for key, ua := range chrome.UserAgent {
-		if ua.Std() == userAgent {
-			return Inference{"chrome", osNames[key]}
+func closest(browser, os string) Inference {
+	if os != "" && !containsOs(browser, os) {
+		return Inference{"chrome", os}
+	}
+	return Inference{browser, os}
+}
+
+func containsOs(browser, os string) bool {
+	for _, candidate := range families[browser].oses {
+		if candidate == os {
+			return true
 		}
 	}
-	for key, ua := range firefox.UserAgent {
-		if ua.Std() == userAgent {
-			return Inference{"firefox", osNames[key]}
-		}
-	}
-	var browser string
-	switch {
-	case strings.Contains(userAgent, "Firefox/") || strings.Contains(userAgent, "FxiOS/"):
-		browser = "firefox"
-	case strings.Contains(userAgent, "Chrome/") || strings.Contains(userAgent, "CriOS/") || strings.Contains(userAgent, "Chromium/"):
-		browser = "chrome"
-	default:
-		return Inference{}
-	}
-	return Inference{browser, platform(userAgent)}
+	return false
 }
 
 func platform(userAgent string) string {

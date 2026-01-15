@@ -51,17 +51,24 @@ type Http3 struct {
 	Order                 []string `zog:"order" json:"order,omitempty"`
 }
 
-func (d Directive) Resolve(pick func(n int) int) Directive {
+func (d Directive) Resolve(available []string, pick func(n int) int) (Directive, bool) {
 	if len(d.Os) == 0 {
-		return d
+		return d, true
 	}
-	pool := d.Os
-	if slices.Contains(pool, "random") {
-		pool = concreteOs
+	pool := available
+	if !slices.Contains(d.Os, "random") {
+		pool = slices.DeleteFunc(slices.Clone(d.Os), func(os string) bool { return !slices.Contains(available, os) })
+	}
+	if len(pool) == 0 {
+		return d, false
 	}
 	d.Os = []string{pool[pick(len(pool))]}
-	return d
+	return d, true
 }
+
+func Browsers() []string { return slices.Clone(browsers.official) }
+
+func ConcreteOs() []string { return slices.Clone(concreteOs) }
 
 func (d Directive) Spec() Spec {
 	s := Spec{

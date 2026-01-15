@@ -1,9 +1,9 @@
 package proxy
 
 import (
+	"fmt"
 	"net"
 	"net/http"
-	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -76,7 +76,13 @@ func (s *Server) onRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Requ
 	if d.ForceHttp == "" && isWebSocketUpgrade(req.Header) {
 		d.ForceHttp = "1"
 	}
-	st.directive = s.resolve(t, d)
+	resolved, ok := s.resolve(t, d)
+	if !ok {
+		s.obs.ValidationFailed("Os")
+		s.finish(st, http.StatusTeapot, 0)
+		return req, teapot(req, directive.Issues{{Path: "Os", Message: fmt.Sprintf("%s is not available for %s", strings.Join(d.Os, ","), d.Browser)}})
+	}
+	st.directive = resolved
 	st.spec = st.directive.Spec()
 	st.accept = acceptEncodings(req.Header.Values("Accept-Encoding"))
 	if len(d.Keep) > 0 {
@@ -97,22 +103,23 @@ func (s *Server) onRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Requ
 	return req, nil
 }
 
-func (s *Server) resolve(t *tunnel, d directive.Directive) directive.Directive {
-	if len(d.Os) <= 1 && !slices.Contains(d.Os, "random") {
-		return d
-	}
-	key := strings.Join(d.Os, ",")
+func (s *Server) resolve(t *tunnel, d directive.Directive) (directive.Directive, bool) {
+	available := impersonate.OSes(d.Browser)
+	key := d.Browser + ":" + strings.Join(d.Os, ",")
 	if t != nil {
 		if os, ok := t.pick(key); ok {
 			d.Os = []string{os}
-			return d
+			return d, true
 		}
 	}
-	d = d.Resolve(s.pick)
-	if t != nil {
-		t.remember(key, d.Os[0])
+	resolved, ok := d.Resolve(available, s.pick)
+	if !ok {
+		return d, false
 	}
-	return d
+	if t != nil && len(resolved.Os) == 1 {
+		t.remember(key, resolved.Os[0])
+	}
+	return resolved, true
 }
 
 func isWebSocketUpgrade(h http.Header) bool {
