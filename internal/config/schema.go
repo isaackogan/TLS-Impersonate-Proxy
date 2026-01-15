@@ -48,6 +48,7 @@ var schema = z.Struct(z.Shape{
 		"maxHeaderBytes":    z.Int().Default(1 << 20).GT(0),
 		"shutdownGrace":     duration().Default(15 * time.Second).GT(0),
 		"serveCa":           flag(true),
+		"serveProfiles":     flag(true),
 	}),
 	"tls": z.Struct(z.Shape{
 		"caCert":        z.String().Default("./ca.pem").Min(1),

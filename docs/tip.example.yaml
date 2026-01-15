@@ -9,6 +9,7 @@ server:
   max_header_bytes: 1048576
   shutdown_grace: 15s          # drain window on SIGTERM
   serve_ca: true               # answer GET /ca.pem and /healthz on the proxy port for non-proxy requests
+  serve_profiles: true         # answer GET /profiles, the identity catalogue for X-Tip-Profile, on the proxy port
 
 tls:
   ca_cert: /var/lib/tip/ca.pem # generated on first start when both files are absent (default ./ca.pem outside containers)

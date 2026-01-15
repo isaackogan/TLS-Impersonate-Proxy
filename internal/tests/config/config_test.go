@@ -28,6 +28,7 @@ func TestEmptyFileYieldsDefaults(t *testing.T) {
 		{"server.listen", cfg.Server.Listen, ":8080"},
 		{"server.read_header_timeout", cfg.Server.ReadHeaderTimeout, 10 * time.Second},
 		{"server.serve_ca", cfg.Server.ServeCa, true},
+		{"server.serve_profiles", cfg.Server.ServeProfiles, true},
 		{"tls.cert_cache_size", cfg.Tls.CertCacheSize, 4096},
 		{"upstream.timeout", cfg.Upstream.Timeout, 30 * time.Second},
 		{"clients.max", cfg.Clients.Max, 256},

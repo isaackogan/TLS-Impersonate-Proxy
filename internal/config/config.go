@@ -22,6 +22,7 @@ type Server struct {
 	MaxHeaderBytes    int           `zog:"max_header_bytes"`
 	ShutdownGrace     time.Duration `zog:"shutdown_grace"`
 	ServeCa           bool          `zog:"serve_ca"`
+	ServeProfiles     bool          `zog:"serve_profiles"`
 }
 
 type Tls struct {
