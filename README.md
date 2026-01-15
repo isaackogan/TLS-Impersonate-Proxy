@@ -48,8 +48,8 @@ Every name is a surf identifier and matching is case-insensitive: `X-TIP-HTTP2SE
 
 | Header | Value | Effect |
 |---|---|---|
-| `X-Tip-Browser` | `Chrome`, `Firefox` | the full profile: TLS ClientHello, HTTP/2 and HTTP/3 SETTINGS, header set and order |
-| `X-Tip-Os` | `Windows`, `MacOS`, `Linux`, `Android`, `IOS`, `Random`, or a list such as `IOS,Android` | the OS the profile claims; a list is chosen from once per connection |
+| `X-Tip-Browser` | `Chrome`, `Firefox`, `Edge` | the full profile: TLS ClientHello, HTTP/2 and HTTP/3 SETTINGS, header set and order. Edge is Chromium's fingerprint with Edge's User-Agent and brands, on every OS but iOS |
+| `X-Tip-Os` | `Windows`, `MacOS`, `Linux`, `Android`, `IOS`, `Random`, or a list such as `IOS,Android` | the OS the profile claims; a list is chosen from once per connection, among the OSes the browser supports |
 | `X-Tip-Match` | `true` | infer `Browser` and `Os` from your User-Agent when `X-Tip-Browser` is absent; Safari, curl and library defaults get no impersonation |
 | `X-Tip-Ja` | a surf JA preset such as `Chrome120PQ`, `Firefox148`, `Safari`, `Randomized` | the TLS ClientHello alone |
 | `X-Tip-Http2Settings` | `HeaderTableSize=65536; EnablePush=0; …` | HTTP/2 SETTINGS and flow control |
