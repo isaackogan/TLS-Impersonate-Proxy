@@ -6,11 +6,11 @@ CA mode is preferred: your code keeps its `https://` URLs and only trusts one ex
 
 | Language | Library | CA mode | Plain mode | More |
 |---|---|---|---|---|
-| Python | requests | [basic](examples/ca-python-requests-basic.py) | [basic](examples/plain-python-requests-basic.py) | [upstream](examples/ca-python-requests-upstream.py), [keep](examples/ca-python-requests-keep.py), [settings](examples/ca-python-requests-settings.py), [random](examples/ca-python-requests-random.py), [match](examples/ca-python-requests-match.py), [errors](examples/ca-python-requests-errors.py), [auth](examples/ca-python-requests-auth.py) |
+| Python | requests | [basic](examples/ca-python-requests-basic.py) | [basic](examples/plain-python-requests-basic.py) | [upstream](examples/ca-python-requests-upstream.py), [keep](examples/ca-python-requests-keep.py), [settings](examples/ca-python-requests-settings.py), [random](examples/ca-python-requests-random.py), [match](examples/ca-python-requests-match.py), [errors](examples/ca-python-requests-errors.py), [auth](examples/ca-python-requests-auth.py), [profile](examples/ca-python-requests-profile.py) |
 | Python | httpx | [basic](examples/ca-python-httpx-basic.py) | [basic](examples/plain-python-httpx-basic.py) | |
 | Python | aiohttp | [basic](examples/ca-python-aiohttp-basic.py) | [basic](examples/plain-python-aiohttp-basic.py) | |
 | Python | websockets | [websocket](examples/ca-python-websockets-websocket.py) | | |
-| Node | fetch | [basic](examples/ca-node-fetch-basic.js) | [basic](examples/plain-node-fetch-basic.js) | [upstream](examples/ca-node-fetch-upstream.js), [keep](examples/ca-node-fetch-keep.js), [settings](examples/ca-node-fetch-settings.js), [random](examples/ca-node-fetch-random.js), [match](examples/ca-node-fetch-match.js), [errors](examples/ca-node-fetch-errors.js), [auth](examples/ca-node-fetch-auth.js) |
+| Node | fetch | [basic](examples/ca-node-fetch-basic.js) | [basic](examples/plain-node-fetch-basic.js) | [upstream](examples/ca-node-fetch-upstream.js), [keep](examples/ca-node-fetch-keep.js), [settings](examples/ca-node-fetch-settings.js), [random](examples/ca-node-fetch-random.js), [match](examples/ca-node-fetch-match.js), [errors](examples/ca-node-fetch-errors.js), [auth](examples/ca-node-fetch-auth.js), [profile](examples/ca-node-fetch-profile.js) |
 | Node | axios | [basic](examples/ca-node-axios-basic.js) | [basic](examples/plain-node-axios-basic.js) | |
 | Node | got | [basic](examples/ca-node-got-basic.js) | [basic](examples/plain-node-got-basic.js) | |
 | Node | ws | [websocket](examples/ca-node-ws-websocket.js) | | |
@@ -20,7 +20,7 @@ CA mode is preferred: your code keeps its `https://` URLs and only trusts one ex
 | Ruby | Net::HTTP | [basic](examples/ca-ruby-nethttp-basic.rb) | [basic](examples/plain-ruby-nethttp-basic.rb) | |
 | PHP | Guzzle | [basic](examples/ca-php-guzzle-basic.php) | [basic](examples/plain-php-guzzle-basic.php) | |
 | Rust | reqwest | [basic](examples/ca-rust-reqwest-basic.rs) | [basic](examples/plain-rust-reqwest-basic.rs) | |
-| Shell | curl | [basic](examples/ca-shell-curl-basic.sh) | [basic](examples/plain-shell-curl-basic.sh) | [upstream](examples/ca-shell-curl-upstream.sh), [keep](examples/ca-shell-curl-keep.sh), [settings](examples/ca-shell-curl-settings.sh), [errors](examples/ca-shell-curl-errors.sh), [auth](examples/ca-shell-curl-auth.sh) |
+| Shell | curl | [basic](examples/ca-shell-curl-basic.sh) | [basic](examples/plain-shell-curl-basic.sh) | [upstream](examples/ca-shell-curl-upstream.sh), [keep](examples/ca-shell-curl-keep.sh), [settings](examples/ca-shell-curl-settings.sh), [errors](examples/ca-shell-curl-errors.sh), [auth](examples/ca-shell-curl-auth.sh), [profile](examples/ca-shell-curl-profile.sh) |
 
 Every example targets `https://tls.browserleaks.com/json`, which reports the User-Agent, the JA4 TLS fingerprint and the HTTP/2 fingerprint it observed, so the output proves the impersonation rather than just a status code. Fetch the CA once with `curl -s http://localhost:8080/ca.pem -o tip-ca.pem`.
 
@@ -40,6 +40,10 @@ Every example targets `https://tls.browserleaks.com/json`, which reports the Use
 | Rust reqwest | `add_root_certificate(Certificate::from_pem(...))` |
 | curl | `--cacert tip-ca.pem` |
 | Debian-based image | copy to `/usr/local/share/ca-certificates/tip.crt`, run `update-ca-certificates` |
+
+## Choosing an identity
+
+`GET /profiles`, on the proxy port or the admin port, lists every browser and OS TIP can impersonate. Each entry has a stable `id`, the exact `userAgent` it will send and, for Chrome and Edge, the client hints that go with it. Send `X-Tip-Profile: <id>` instead of `X-Tip-Browser` and `X-Tip-Os` to pin one entry, which is the right tool when something on your side is bound to the User-Agent, such as a request signature. The `revision` field is the response's `ETag`, so a client can poll with `If-None-Match` and refetch only when the profiles change. An id TIP no longer knows is a `418` whose `X-Tip-Profiles-Revision` header says which revision to fetch.
 
 ## Python
 
@@ -683,7 +687,8 @@ curl -s --proxy http://localhost:8080 \
 | upstream | `X-Tip-Proxy` sends the impersonated connection out through your own SOCKS5 or HTTP proxy | [python](examples/ca-python-requests-upstream.py), [node](examples/ca-node-fetch-upstream.js), [curl](examples/ca-shell-curl-upstream.sh) |
 | keep | `X-Tip-Keep` hands named headers back to you after the profile has set its own | [python](examples/ca-python-requests-keep.py), [node](examples/ca-node-fetch-keep.js), [curl](examples/ca-shell-curl-keep.sh) |
 | settings | `X-Tip-Http2Settings` as a cookie-style key-value list | [python](examples/ca-python-requests-settings.py), [node](examples/ca-node-fetch-settings.js), [curl](examples/ca-shell-curl-settings.sh) |
-| random | a choice list in `X-Tip-Os`, resolved once per connection | [python](examples/ca-python-requests-random.py), [node](examples/ca-node-fetch-random.js) |
+| random | a choice list in `X-Tip-Browser` or `X-Tip-Os`, resolved once per connection | [python](examples/ca-python-requests-random.py), [node](examples/ca-node-fetch-random.js) |
+| profile | an `id` from `GET /profiles` in `X-Tip-Profile`, pinning one exact User-Agent and the fingerprint that goes with it | [python](examples/ca-python-requests-profile.py), [node](examples/ca-node-fetch-profile.js), [shell](examples/ca-shell-curl-profile.sh) |
 | match | `X-Tip-Match` infers the browser family from your User-Agent | [python](examples/ca-python-requests-match.py), [node](examples/ca-node-fetch-match.js) |
 | errors | the `418` response and its `X-Tip-Error` headers | [python](examples/ca-python-requests-errors.py), [node](examples/ca-node-fetch-errors.js), [curl](examples/ca-shell-curl-errors.sh) |
 | auth | proxy credentials in the proxy URL | [python](examples/ca-python-requests-auth.py), [node](examples/ca-node-fetch-auth.js), [curl](examples/ca-shell-curl-auth.sh) |

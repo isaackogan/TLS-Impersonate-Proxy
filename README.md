@@ -48,8 +48,9 @@ Every name is a surf identifier and matching is case-insensitive: `X-TIP-HTTP2SE
 
 | Header | Value | Effect |
 |---|---|---|
-| `X-Tip-Browser` | `Chrome`, `Firefox`, `Edge` | the full profile: TLS ClientHello, HTTP/2 and HTTP/3 SETTINGS, header set and order. Edge is Chromium's fingerprint with Edge's User-Agent and brands, on every OS but iOS |
+| `X-Tip-Browser` | `Chrome`, `Firefox`, `Edge`, `Random`, or a list such as `Chrome,Edge` | the full profile: TLS ClientHello, HTTP/2 and HTTP/3 SETTINGS, header set and order. A list is chosen from once per connection. Edge is Chromium's fingerprint with Edge's User-Agent and brands, on every OS but iOS |
 | `X-Tip-Os` | `Windows`, `MacOS`, `Linux`, `Android`, `IOS`, `Random`, or a list such as `IOS,Android` | the OS the profile claims; a list is chosen from once per connection, among the OSes the browser supports |
+| `X-Tip-Profile` | an `id` from `GET /profiles` | one exact identity: the browser, OS, User-Agent and client hints the catalogue lists for it; replaces `Browser`, `Os` and `Match` |
 | `X-Tip-Match` | `true` | infer `Browser` and `Os` from your User-Agent when `X-Tip-Browser` is absent; Safari, curl and library defaults get no impersonation |
 | `X-Tip-Ja` | a surf JA preset such as `Chrome120PQ`, `Firefox148`, `Safari`, `Randomized` | the TLS ClientHello alone |
 | `X-Tip-Http2Settings` | `HeaderTableSize=65536; EnablePush=0; …` | HTTP/2 SETTINGS and flow control |
@@ -84,6 +85,8 @@ When `X-Tip-Browser` applies, the profile owns User-Agent, Accept, Accept-Encodi
 
 > [!TIP]
 > `X-Tip-Keep: Accept, User-Agent` hands those headers back to you after the profile runs. With `X-Tip-Match: true` that gives your exact User-Agent a matching TLS and HTTP/2 fingerprint.
+
+`GET /profiles` lists every identity TIP can take, with the exact User-Agent and client hints each one sends and a stable `id`. Pin one with `X-Tip-Profile` when something on your side, such as a request signature, is bound to the User-Agent that will go out. The listing's `revision` is also its `ETag`, and an id TIP no longer knows is a `418` naming the current revision in `X-Tip-Profiles-Revision`.
 
 </details>
 

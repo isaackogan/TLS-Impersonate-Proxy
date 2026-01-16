@@ -90,7 +90,7 @@ func TestSnippetsEqualExamples(t *testing.T) {
 }
 
 func TestExamplesUseOnlyKnownDirectives(t *testing.T) {
-	known := map[string]bool{"error": true, "errorcount": true}
+	known := map[string]bool{"error": true, "errorcount": true, "profiles": true}
 	for _, name := range directive.Names() {
 		known[strings.ToLower(name)] = true
 	}
