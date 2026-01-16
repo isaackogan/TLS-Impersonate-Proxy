@@ -2,6 +2,7 @@ package directive
 
 import (
 	"slices"
+	"strings"
 	"time"
 )
 
@@ -26,6 +27,12 @@ type Directive struct {
 	Keep             []string      `zog:"keep"`
 	Match            bool          `zog:"match"`
 	Profile          string        `zog:"profile"`
+	fromRequest      map[string]struct{}
+}
+
+func (d Directive) FromRequest(name string) bool {
+	_, ok := d.fromRequest[strings.ToLower(name)]
+	return ok
 }
 
 type Http2 struct {

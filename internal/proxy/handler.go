@@ -78,10 +78,10 @@ func (s *Server) onRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Requ
 		}
 		d.Browser, d.Os = []string{p.Family()}, []string{p.Platform()}
 	}
-	if d.Match && len(d.Browser) == 0 {
+	if d.Match && !d.FromRequest("browser") {
 		if inferred := impersonate.Infer(req.Header.Get("User-Agent")); inferred.Browser != "" {
 			d.Browser = []string{inferred.Browser}
-			if len(d.Os) == 0 && inferred.Os != "" {
+			if inferred.Os != "" && !d.FromRequest("os") {
 				d.Os = []string{inferred.Os}
 			}
 		}

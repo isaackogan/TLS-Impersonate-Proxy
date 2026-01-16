@@ -28,8 +28,7 @@ func hasPrefix(name string) bool {
 }
 
 func Parse(h http.Header, p Policy) (Directive, Issues) {
-	in := make(map[string]any, len(p.defaults)+len(h))
-	maps.Copy(in, p.defaults)
+	req := make(map[string]any, len(h))
 	var issues Issues
 	for name, values := range h {
 		if !hasPrefix(name) {
@@ -47,15 +46,46 @@ func Parse(h http.Header, p Policy) (Directive, Issues) {
 				issues = append(issues, Issue{Path: officialName(key), Message: err.Error()})
 				continue
 			}
-			in[key] = shaped
+			req[key] = shaped
 		}
 	}
+	in := make(map[string]any, len(p.defaults)+len(req))
+	for key, value := range p.defaults {
+		if !displaced(req, key) {
+			in[key] = value
+		}
+	}
+	maps.Copy(in, req)
 	var d Directive
 	issues = append(issues, fromZog(schema.Parse(in, &d, z.WithIssueFormatter(formatIssue)))...)
 	if len(issues) > 0 {
 		return Directive{}, issues
 	}
+	d.fromRequest = make(map[string]struct{}, len(req))
+	for key := range req {
+		d.fromRequest[key] = struct{}{}
+	}
 	return d, nil
+}
+
+// A default is displaced by the request naming the same directive, or one from the other identity group:
+// Profile and the Browser, Os, Match trio are exclusive, so a request choosing one side drops defaults on the other.
+func displaced(req map[string]any, key string) bool {
+	if _, ok := req[key]; ok {
+		return true
+	}
+	switch key {
+	case "browser", "os", "match":
+		_, ok := req["profile"]
+		return ok
+	case "profile":
+		for _, other := range []string{"browser", "os", "match"} {
+			if _, ok := req[other]; ok {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func Strip(h http.Header) {
