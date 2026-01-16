@@ -8,7 +8,7 @@ import (
 const Prefix = "X-Tip-"
 
 type Directive struct {
-	Browser          string        `zog:"browser"`
+	Browser          []string      `zog:"browser"`
 	Os               []string      `zog:"os"`
 	Ja               string        `zog:"ja"`
 	Http2Settings    *Http2        `zog:"http2settings"`
@@ -25,6 +25,7 @@ type Directive struct {
 	Scheme           string        `zog:"scheme"`
 	Keep             []string      `zog:"keep"`
 	Match            bool          `zog:"match"`
+	Profile          string        `zog:"profile"`
 }
 
 type Http2 struct {
@@ -51,19 +52,27 @@ type Http3 struct {
 	Order                 []string `zog:"order" json:"order,omitempty"`
 }
 
-func (d Directive) Resolve(available []string, pick func(n int) int) (Directive, bool) {
-	if len(d.Os) == 0 {
+func (d Directive) Resolve(browsers []string, oses func(browser string) []string, pick func(n int) int) (Directive, bool) {
+	if len(d.Browser) == 0 {
 		return d, true
 	}
-	pool := available
-	if !slices.Contains(d.Os, "random") {
-		pool = slices.DeleteFunc(slices.Clone(d.Os), func(os string) bool { return !slices.Contains(available, os) })
-	}
+	pool := slices.DeleteFunc(choose(d.Browser, browsers), func(b string) bool { return len(choose(d.Os, oses(b))) == 0 })
 	if len(pool) == 0 {
 		return d, false
 	}
-	d.Os = []string{pool[pick(len(pool))]}
+	d.Browser = []string{pool[pick(len(pool))]}
+	if len(d.Os) > 0 {
+		os := choose(d.Os, oses(d.Browser[0]))
+		d.Os = []string{os[pick(len(os))]}
+	}
 	return d, true
+}
+
+func choose(want, available []string) []string {
+	if len(want) == 0 || slices.Contains(want, "random") {
+		return slices.Clone(available)
+	}
+	return slices.DeleteFunc(slices.Clone(want), func(v string) bool { return !slices.Contains(available, v) })
 }
 
 func Browsers() []string { return slices.Clone(browsers.official) }
@@ -72,7 +81,6 @@ func ConcreteOs() []string { return slices.Clone(concreteOs) }
 
 func (d Directive) Spec() Spec {
 	s := Spec{
-		Browser:          d.Browser,
 		Ja:               d.Ja,
 		Http2Settings:    d.Http2Settings,
 		Http3Settings:    d.Http3Settings,
@@ -85,8 +93,11 @@ func (d Directive) Spec() Spec {
 		DisableKeepAlive: d.DisableKeepAlive,
 		H2c:              d.H2c,
 	}
-	if len(d.Os) > 0 && d.Browser != "" {
-		s.Os = d.Os[0]
+	if len(d.Browser) > 0 {
+		s.Browser = d.Browser[0]
+		if len(d.Os) > 0 {
+			s.Os = d.Os[0]
+		}
 	}
 	return s
 }

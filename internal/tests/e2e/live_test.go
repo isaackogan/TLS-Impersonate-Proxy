@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/isaackogan/tls-impersonate-proxy/internal/impersonate"
 	"github.com/isaackogan/tls-impersonate-proxy/internal/tests/testutil"
 )
 
@@ -135,6 +136,19 @@ func TestLiveFingerprints(t *testing.T) {
 		}
 		if edge.HTTP2.Akamai != chromeAkamai || edge.TLS.JA4 != chrome.TLS.JA4 {
 			t.Errorf("edge akamai %q ja4 %q, want chrome's %q %q", edge.HTTP2.Akamai, edge.TLS.JA4, chromeAkamai, chrome.TLS.JA4)
+		}
+	})
+
+	var pinned impersonate.Profile
+	for _, p := range impersonate.Profiles().Profiles {
+		if p.Browser == "Firefox" && p.Os == "MacOS" {
+			pinned = p
+		}
+	}
+	byProfile := observe(t, client, "X-Tip-Profile", pinned.ID)
+	t.Run("profile id pins the catalogue identity on the wire", func(t *testing.T) {
+		if byProfile.UserAgent != pinned.UserAgent || byProfile.HTTP2.Akamai != firefoxAkamai {
+			t.Errorf("ua %q akamai %q", byProfile.UserAgent, byProfile.HTTP2.Akamai)
 		}
 	})
 

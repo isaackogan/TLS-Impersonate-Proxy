@@ -50,7 +50,7 @@ func TestParseAcceptsEveryShapeCaseInsensitively(t *testing.T) {
 	if len(issues) > 0 {
 		t.Fatalf("unexpected issues: %v", issues)
 	}
-	if d.Browser != "chrome" || strings.Join(d.Os, ",") != "ios,android" || d.Ja != "chrome120pq" {
+	if strings.Join(d.Browser, ",") != "chrome" || strings.Join(d.Os, ",") != "ios,android" || d.Ja != "chrome120pq" {
 		t.Fatalf("browser/os/ja: %+v", d)
 	}
 	if d.Http2Settings == nil || *d.Http2Settings.HeaderTableSize != 65536 || *d.Http2Settings.EnablePush != 0 || d.Http2Settings.MaxFrameSize != nil {
@@ -75,7 +75,7 @@ func TestParseAcceptsEveryShapeCaseInsensitively(t *testing.T) {
 
 func TestParseNoDirectivesIsEmpty(t *testing.T) {
 	d, issues := directive.Parse(headers("User-Agent", "curl"), mustPolicy(t, nil, nil))
-	if len(issues) > 0 || d.Browser != "" || d.Os != nil || d.Http2Settings != nil || d.Timeout != 0 {
+	if len(issues) > 0 || d.Browser != nil || d.Os != nil || d.Http2Settings != nil || d.Timeout != 0 {
 		t.Fatalf("got %+v %v", d, issues)
 	}
 }
@@ -87,7 +87,7 @@ func TestParseIssues(t *testing.T) {
 		wantMsg string
 	}{
 		{"unknown directive", headers("X-Tip-Colour", "red"), "X-Tip-Colour: unknown directive"},
-		{"bad browser", headers("X-Tip-Browser", "safari"), "Browser: must be one of Chrome, Firefox"},
+		{"bad browser", headers("X-Tip-Browser", "safari"), "Browser[0]: must be one of Chrome, Firefox"},
 		{"bad os item", headers("X-Tip-Os", "ios,amiga"), "Os[1]: must be one of Windows, MacOS, Linux, Android, IOS, Random"},
 		{"unknown kv key", headers("X-Tip-Http2Settings", "HeaderTableSize=1; Colour=2"), "Http2Settings: unknown key Colour"},
 		{"kv without equals", headers("X-Tip-Http3Settings", "Grease"), "Http3Settings: must be Key=Value pairs"},
@@ -99,8 +99,9 @@ func TestParseIssues(t *testing.T) {
 		{"bad force", headers("X-Tip-ForceHttp", "4"), "ForceHttp: must be 1, 2 or 3"},
 		{"bad scheme", headers("X-Tip-Scheme", "http"), "Scheme: must be one of https"},
 		{"bad dot", headers("X-Tip-DnsOverTls", "nowhere"), "DnsOverTls: must be one of"},
-		{"scalar twice", headers("X-Tip-Browser", "chrome", "X-Tip-Browser", "firefox"), "Browser: sent more than once"},
-		{"empty scalar", headers("X-Tip-Browser", ""), "Browser: must not be empty"},
+		{"scalar twice", headers("X-Tip-Ja", "chrome", "X-Tip-Ja", "firefox"), "Ja: sent more than once"},
+		{"empty scalar", headers("X-Tip-Ja", ""), "Ja: must not be empty"},
+		{"empty list", headers("X-Tip-Browser", ""), "Browser: must not be empty"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -139,7 +140,7 @@ func TestRepeatedListLinesJoin(t *testing.T) {
 func TestDefaultsAndDeny(t *testing.T) {
 	p := mustPolicy(t, map[string]string{"Browser": "Firefox", "X-Tip-Os": "Random"}, []string{"Proxy"})
 	d, issues := directive.Parse(headers("X-Tip-Os", "linux"), p)
-	if len(issues) > 0 || d.Browser != "firefox" || strings.Join(d.Os, ",") != "linux" {
+	if len(issues) > 0 || strings.Join(d.Browser, ",") != "firefox" || strings.Join(d.Os, ",") != "linux" {
 		t.Fatalf("%+v %v", d, issues)
 	}
 	_, issues = directive.Parse(headers("X-Tip-Proxy", "http://p:1"), p)
@@ -158,7 +159,7 @@ func TestStrip(t *testing.T) {
 
 func TestNamesMatchShape(t *testing.T) {
 	names := directive.Names()
-	if len(names) != 17 {
+	if len(names) != 18 {
 		t.Fatalf("got %d names: %v", len(names), names)
 	}
 	for _, n := range names {

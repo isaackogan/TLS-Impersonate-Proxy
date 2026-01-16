@@ -13,7 +13,7 @@ func TestParseReportsShapeAndValueIssuesTogether(t *testing.T) {
 		t.Fatalf("want 3 issues, got %v", issues)
 	}
 	msg := issues.Error()
-	for _, want := range []string{"X-Tip-Colour: unknown directive", "Browser: must be one of", "Http2Settings: unknown key Nope"} {
+	for _, want := range []string{"X-Tip-Colour: unknown directive", "Browser[0]: must be one of", "Http2Settings: unknown key Nope"} {
 		if !strings.Contains(msg, want) {
 			t.Errorf("missing %q in %q", want, msg)
 		}
@@ -100,5 +100,34 @@ func TestIssueHeadersAreSingleLine(t *testing.T) {
 		if strings.ContainsAny(v, "\r\n") {
 			t.Fatalf("header value contains a line break: %q", v)
 		}
+	}
+}
+
+func TestProfileDirective(t *testing.T) {
+	d, issues := directive.Parse(headers("X-Tip-Profile", " C1A2F0E9B7D3 "), mustPolicy(t, nil, nil))
+	if len(issues) > 0 || d.Profile != "c1a2f0e9b7d3" {
+		t.Fatalf("%+v %v", d, issues)
+	}
+	cases := []struct {
+		name    string
+		kv      []string
+		wantMsg string
+	}{
+		{"bad shape", []string{"X-Tip-Profile", "chrome-152"}, "Profile: must be a 12-character hex id"},
+		{"with browser", []string{"X-Tip-Profile", "c1a2f0e9b7d3", "X-Tip-Browser", "Chrome"}, "Profile: cannot be combined with Browser, Os or Match"},
+		{"with os", []string{"X-Tip-Profile", "c1a2f0e9b7d3", "X-Tip-Os", "Random"}, "Profile: cannot be combined"},
+		{"with match", []string{"X-Tip-Profile", "c1a2f0e9b7d3", "X-Tip-Match", "true"}, "Profile: cannot be combined"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, issues := directive.Parse(headers(tc.kv...), mustPolicy(t, nil, nil))
+			if len(issues) == 0 || !strings.Contains(issues.Error(), tc.wantMsg) {
+				t.Fatalf("got %v, want %q", issues, tc.wantMsg)
+			}
+		})
+	}
+	d, issues = directive.Parse(headers("X-Tip-Profile", "c1a2f0e9b7d3", "X-Tip-Keep", "Accept", "X-Tip-Timeout", "5s"), mustPolicy(t, nil, nil))
+	if len(issues) > 0 || d.Profile == "" {
+		t.Fatalf("profile must combine with per-request directives: %v", issues)
 	}
 }

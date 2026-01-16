@@ -19,7 +19,7 @@ func TestInvalidConfigFailsFast(t *testing.T) {
 	}{
 		{"unknown key", "server:\n  lisen: \":1\"\n", "unknown keys: server.lisen"},
 		{"bad value", "clients:\n  max: 0\n", "clients.max"},
-		{"bad default directive", "directives:\n  defaults:\n    Browser: Safari\n", "defaults: Browser: must be one of"},
+		{"bad default directive", "directives:\n  defaults:\n    Browser: Safari\n", "defaults: Browser[0]: must be one of"},
 		{"bad deny", "directives:\n  deny: [Colour]\n", "deny: unknown directive"},
 		{"bad route capture", "metrics:\n  routes:\n    - {name: r, host: h, path: /a/:id, capture: [other]}\n", "capture \"other\" is not a parameter"},
 	}

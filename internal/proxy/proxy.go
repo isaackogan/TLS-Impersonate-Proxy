@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/subtle"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -16,6 +17,7 @@ import (
 	"github.com/elazarl/goproxy/ext/auth"
 
 	"github.com/isaackogan/tls-impersonate-proxy/internal/directive"
+	"github.com/isaackogan/tls-impersonate-proxy/internal/impersonate"
 )
 
 type Options struct {
@@ -26,6 +28,7 @@ type Options struct {
 	Encoding      string
 	Timeout       time.Duration
 	ServeCa       bool
+	ServeProfiles bool
 	Redact        func(name, value string) string
 }
 
@@ -51,6 +54,7 @@ type Server struct {
 	obs     Observer
 	log     *slog.Logger
 	caPEM    []byte
+	profiles []byte
 	tlsFor   func(host string, ctx *goproxy.ProxyCtx) (*tls.Config, error)
 	pick     func(int) int
 	active   atomic.Int64
@@ -81,6 +85,7 @@ func New(o Options, policy directive.Policy, clients Clients, obs Observer, log 
 		tlsFor:  goproxy.TLSConfigFromCA(&o.CA),
 		pick:    rand.IntN,
 	}
+	s.profiles, _ = json.Marshal(impersonate.Profiles())
 	p := s.proxy
 	p.Logger = goproxyLogger{log}
 	p.Verbose = log.Enabled(context.Background(), slog.LevelDebug)
@@ -115,6 +120,20 @@ func (s *Server) Drain(ctx context.Context) error {
 
 func (s *Server) Active() int64 { return s.active.Load() }
 
+func (s *Server) ProfilesHandler() http.Handler {
+	etag := `"` + impersonate.Profiles().Revision + `"`
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("ETag", etag)
+		w.Header().Set("Cache-Control", "max-age=300")
+		if r.Header.Get("If-None-Match") == etag {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(s.profiles)
+	})
+}
+
 func (s *Server) CAHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/x-pem-file")
@@ -137,7 +156,7 @@ func (s *Server) plainAuth(basic goproxy.ReqHandler) goproxy.ReqHandler {
 }
 
 func (s *Server) onConnect(host string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
-	ctx.UserData = &tunnel{picks: map[string]string{}}
+	ctx.UserData = &tunnel{picks: map[string]identity{}}
 	s.obs.TunnelOpened()
 	return &goproxy.ConnectAction{Action: goproxy.ConnectMitm, TLSConfig: s.tlsFor}, host
 }
@@ -148,6 +167,8 @@ func (s *Server) nonProxy(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, "ok\n")
 	case r.URL.Path == "/ca.pem" && s.opts.ServeCa:
 		s.CAHandler().ServeHTTP(w, r)
+	case r.URL.Path == "/profiles" && s.opts.ServeProfiles:
+		s.ProfilesHandler().ServeHTTP(w, r)
 	default:
 		http.Error(w, "tip is a proxy; configure it as your HTTP proxy", http.StatusBadRequest)
 	}

@@ -21,7 +21,7 @@ const (
 	shapeKV
 )
 
-var shapes = map[string]valueShape{"os": shapeList, "keep": shapeList, "http2settings": shapeKV, "http3settings": shapeKV}
+var shapes = map[string]valueShape{"browser": shapeList, "os": shapeList, "keep": shapeList, "http2settings": shapeKV, "http3settings": shapeKV}
 
 func hasPrefix(name string) bool {
 	return len(name) >= len(Prefix) && strings.EqualFold(name[:len(Prefix)], Prefix)
@@ -69,7 +69,11 @@ func Strip(h http.Header) {
 func shapeValue(key string, values []string) (any, error) {
 	switch shapes[key] {
 	case shapeList:
-		return splitList(strings.Join(values, ",")), nil
+		raw := strings.Join(values, ",")
+		if strings.TrimSpace(raw) == "" {
+			return nil, errors.New("must not be empty")
+		}
+		return splitList(raw), nil
 	case shapeKV:
 		return parsePairs(key, strings.Join(values, ";"))
 	}

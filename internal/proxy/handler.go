@@ -15,22 +15,24 @@ import (
 	"github.com/isaackogan/tls-impersonate-proxy/internal/impersonate"
 )
 
+type identity struct{ browser, os []string }
+
 type tunnel struct {
 	mu    sync.Mutex
-	picks map[string]string
+	picks map[string]identity
 }
 
-func (t *tunnel) pick(key string) (string, bool) {
+func (t *tunnel) pick(key string) (identity, bool) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	os, ok := t.picks[key]
-	return os, ok
+	id, ok := t.picks[key]
+	return id, ok
 }
 
-func (t *tunnel) remember(key, os string) {
+func (t *tunnel) remember(key string, id identity) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	t.picks[key] = os
+	t.picks[key] = id
 }
 
 type state struct {
@@ -65,9 +67,20 @@ func (s *Server) onRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Requ
 		s.finish(st, http.StatusTeapot, 0)
 		return req, teapot(req, issues)
 	}
-	if d.Match && d.Browser == "" {
+	if d.Profile != "" {
+		p, ok := impersonate.Lookup(d.Profile)
+		if !ok {
+			s.obs.ValidationFailed("Profile")
+			s.finish(st, http.StatusTeapot, 0)
+			resp := teapot(req, directive.Issues{{Path: "Profile", Message: "unknown, fetch /profiles again"}})
+			resp.Header.Set("X-Tip-Profiles-Revision", impersonate.Profiles().Revision)
+			return req, resp
+		}
+		d.Browser, d.Os = []string{p.Family()}, []string{p.Platform()}
+	}
+	if d.Match && len(d.Browser) == 0 {
 		if inferred := impersonate.Infer(req.Header.Get("User-Agent")); inferred.Browser != "" {
-			d.Browser = inferred.Browser
+			d.Browser = []string{inferred.Browser}
 			if len(d.Os) == 0 && inferred.Os != "" {
 				d.Os = []string{inferred.Os}
 			}
@@ -80,7 +93,7 @@ func (s *Server) onRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Requ
 	if !ok {
 		s.obs.ValidationFailed("Os")
 		s.finish(st, http.StatusTeapot, 0)
-		return req, teapot(req, directive.Issues{{Path: "Os", Message: fmt.Sprintf("%s is not available for %s", strings.Join(d.Os, ","), d.Browser)}})
+		return req, teapot(req, directive.Issues{{Path: "Os", Message: fmt.Sprintf("%s is not available for %s", strings.Join(d.Os, ","), strings.Join(d.Browser, ","))}})
 	}
 	st.directive = resolved
 	st.spec = st.directive.Spec()
@@ -104,20 +117,19 @@ func (s *Server) onRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Requ
 }
 
 func (s *Server) resolve(t *tunnel, d directive.Directive) (directive.Directive, bool) {
-	available := impersonate.OSes(d.Browser)
-	key := d.Browser + ":" + strings.Join(d.Os, ",")
+	key := strings.Join(d.Browser, ",") + ":" + strings.Join(d.Os, ",")
 	if t != nil {
-		if os, ok := t.pick(key); ok {
-			d.Os = []string{os}
+		if id, ok := t.pick(key); ok {
+			d.Browser, d.Os = id.browser, id.os
 			return d, true
 		}
 	}
-	resolved, ok := d.Resolve(available, s.pick)
+	resolved, ok := d.Resolve(impersonate.Families(), impersonate.OSes, s.pick)
 	if !ok {
 		return d, false
 	}
-	if t != nil && len(resolved.Os) == 1 {
-		t.remember(key, resolved.Os[0])
+	if t != nil && len(resolved.Browser) > 0 {
+		t.remember(key, identity{resolved.Browser, resolved.Os})
 	}
 	return resolved, true
 }

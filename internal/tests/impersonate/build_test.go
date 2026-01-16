@@ -23,7 +23,7 @@ func spec(t *testing.T, kv ...string) directive.Spec {
 	if len(issues) > 0 {
 		t.Fatal(issues)
 	}
-	r, _ := d.Resolve(directive.ConcreteOs(), func(int) int { return 0 })
+	r, _ := d.Resolve(impersonate.Families(), impersonate.OSes, func(int) int { return 0 })
 	return r.Spec()
 }
 

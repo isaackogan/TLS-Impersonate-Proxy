@@ -94,7 +94,7 @@ func (s *Server) finish(st *state, status int, bytesOut int64) {
 		Host:     st.host,
 		Method:   st.method,
 		Path:     st.path,
-		Browser:  st.directive.Browser,
+		Browser:  st.spec.Browser,
 		Route:    route,
 		Status:   status,
 		Duration: time.Since(st.started),

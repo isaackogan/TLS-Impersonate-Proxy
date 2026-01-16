@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net"
 	"net/url"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -37,12 +38,13 @@ func lowercase(s *string, _ z.Ctx) error {
 }
 
 var (
-	browsers     = newEnum("Chrome", "Firefox", "Edge")
+	browsers     = newEnum("Chrome", "Firefox", "Edge", "Random")
 	oses         = newEnum("Windows", "MacOS", "Linux", "Android", "IOS", "Random")
 	concreteOs   = oses.lower[:5]
 	jaPresets    = newEnum("Android", "Chrome", "Chrome58", "Chrome62", "Chrome70", "Chrome72", "Chrome83", "Chrome87", "Chrome96", "Chrome100", "Chrome102", "Chrome106", "Chrome120", "Chrome120PQ", "Chrome152", "Edge", "Edge85", "Edge106", "Firefox", "Firefox55", "Firefox56", "Firefox63", "Firefox65", "Firefox99", "Firefox102", "Firefox105", "Firefox120", "Firefox148", "IOS", "IOS11", "IOS12", "IOS13", "IOS14", "Randomized", "RandomizedALPN", "RandomizedNoALPN", "Safari")
 	dotProviders = newEnum("AdGuard", "Google", "Cloudflare", "Quad9", "Switch", "CIRAShield", "Ali", "Quad101", "SB", "Forge", "LibreDNS")
 	proxySchemes = []string{"http", "https", "socks4", "socks4a", "socks5", "socks5h"}
+	profileID    = regexp.MustCompile(`^[0-9a-f]{12}$`)
 )
 
 func JaPresets() []string { return slices.Clone(jaPresets.lower) }
@@ -157,7 +159,7 @@ var h3Shape = z.Shape{
 }
 
 var shape = z.Shape{
-	"browser":          browsers.schema(),
+	"browser":          z.Slice(browsers.schema()),
 	"os":               z.Slice(oses.schema()),
 	"ja":               jaPresets.schema(),
 	"http2Settings":    z.Ptr(z.Struct(h2Shape)),
@@ -174,9 +176,13 @@ var shape = z.Shape{
 	"scheme":           newEnum("https").schema(),
 	"keep":             z.Slice(z.String().Trim().Transform(lowercase).Min(1, z.Message("header names must not be empty"))),
 	"match":            boolean(),
+	"profile":          z.String().Trim().Transform(lowercase).Match(profileID, z.Message("must be a 12-character hex id from /profiles")),
 }
 
-var schema = z.Struct(shape)
+var schema = z.Struct(shape).TestFunc(func(v any, _ z.Ctx) bool {
+	d := v.(*Directive)
+	return d.Profile == "" || (len(d.Browser) == 0 && len(d.Os) == 0 && !d.Match)
+}, z.Message("cannot be combined with Browser, Os or Match"), z.IssuePath([]string{"profile"}))
 
 var (
 	official = map[string]string{}
@@ -185,7 +191,7 @@ var (
 )
 
 func init() {
-	known = register("Browser", "Os", "Ja", "Http2Settings", "Http3Settings", "ForceHttp", "Proxy", "Timeout", "Dns", "DnsOverTls", "InterfaceAddr", "SecureTls", "DisableKeepAlive", "H2c", "Scheme", "Keep", "Match")
+	known = register("Browser", "Os", "Ja", "Http2Settings", "Http3Settings", "ForceHttp", "Proxy", "Timeout", "Dns", "DnsOverTls", "InterfaceAddr", "SecureTls", "DisableKeepAlive", "H2c", "Scheme", "Keep", "Match", "Profile")
 	kvKeys["http2settings"] = register("HeaderTableSize", "EnablePush", "MaxConcurrentStreams", "InitialWindowSize", "MaxFrameSize", "MaxHeaderListSize", "NoRFC7540Priorities", "ConnectionFlow", "InitialStreamID")
 	kvKeys["http3settings"] = register("QpackMaxTableCapacity", "MaxFieldSectionSize", "QpackBlockedStreams", "EnableConnectProtocol", "SettingsH3Datagram", "H3Datagram", "EnableWebtransport", "Grease")
 }

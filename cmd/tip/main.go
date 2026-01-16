@@ -72,6 +72,7 @@ func run(path string) error {
 		Encoding:      cfg.Encoding.Mode,
 		Timeout:       cfg.Upstream.Timeout,
 		ServeCa:       cfg.Server.ServeCa,
+		ServeProfiles: cfg.Server.ServeProfiles,
 		Redact:        logging.NewRedactor(cfg.Logging.Redact).Value,
 	}, policy, clientSource{cache}, obs, log)
 	if err != nil {
@@ -93,6 +94,7 @@ func run(path string) error {
 	admin := http.NewServeMux()
 	admin.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprintln(w, "ok") })
 	admin.Handle("/ca.pem", srv.CAHandler())
+	admin.Handle("/profiles", srv.ProfilesHandler())
 	if m != nil {
 		admin.Handle(cfg.Metrics.Path, m.Handler())
 	}

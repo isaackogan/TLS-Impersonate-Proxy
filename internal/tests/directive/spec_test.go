@@ -8,24 +8,26 @@ import (
 )
 
 func TestResolveIsDeterministicGivenPick(t *testing.T) {
-	all := directive.ConcreteOs()
-	d, _ := directive.Parse(headers("X-Tip-Os", "ios,android"), mustPolicy(t, nil, nil))
-	r, ok := d.Resolve(all, func(n int) int { return n - 1 })
+	families := []string{"chrome", "edge", "firefox"}
+	all := func(string) []string { return directive.ConcreteOs() }
+	third := func(n int) int { return min(2, n-1) }
+	d, _ := directive.Parse(headers("X-Tip-Browser", "chrome", "X-Tip-Os", "ios,android"), mustPolicy(t, nil, nil))
+	r, ok := d.Resolve(families, all, func(n int) int { return n - 1 })
 	if !ok || len(r.Os) != 1 || r.Os[0] != "android" {
 		t.Fatalf("%v %v", r.Os, ok)
 	}
-	d, _ = directive.Parse(headers("X-Tip-Os", "random"), mustPolicy(t, nil, nil))
-	r, _ = d.Resolve(all, func(int) int { return 2 })
+	d, _ = directive.Parse(headers("X-Tip-Browser", "chrome", "X-Tip-Os", "random"), mustPolicy(t, nil, nil))
+	r, _ = d.Resolve(families, all, third)
 	if r.Os[0] != "linux" {
 		t.Fatalf("%v", r.Os)
 	}
-	desktop := []string{"windows", "macos", "linux"}
-	r, ok = d.Resolve(desktop, func(int) int { return 2 })
+	desktop := func(string) []string { return []string{"windows", "macos", "linux"} }
+	r, ok = d.Resolve(families, desktop, third)
 	if !ok || r.Os[0] != "linux" {
 		t.Fatalf("random within a subset: %v %v", r.Os, ok)
 	}
-	d, _ = directive.Parse(headers("X-Tip-Os", "ios"), mustPolicy(t, nil, nil))
-	if _, ok := d.Resolve(desktop, func(int) int { return 0 }); ok {
+	d, _ = directive.Parse(headers("X-Tip-Browser", "chrome", "X-Tip-Os", "ios"), mustPolicy(t, nil, nil))
+	if _, ok := d.Resolve(families, desktop, func(int) int { return 0 }); ok {
 		t.Fatal("an unavailable os must not resolve")
 	}
 }

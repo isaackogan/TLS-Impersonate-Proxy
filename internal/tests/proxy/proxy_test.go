@@ -100,7 +100,7 @@ func build(t *testing.T, policy directive.Policy, mutate func(*proxy.Options)) *
 		return impersonate.Build(s, impersonate.Options{ResponseHeaderTimeout: 5 * time.Second})
 	}, nil)
 	t.Cleanup(cache.Close)
-	opts := proxy.Options{CA: ca, CertCacheSize: 16, Encoding: "negotiate", Timeout: 5 * time.Second, ServeCa: true}
+	opts := proxy.Options{CA: ca, CertCacheSize: 16, Encoding: "negotiate", Timeout: 5 * time.Second, ServeCa: true, ServeProfiles: true}
 	if mutate != nil {
 		mutate(&opts)
 	}

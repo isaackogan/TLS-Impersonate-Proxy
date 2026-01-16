@@ -26,6 +26,7 @@ func TestFamiliesAndOses(t *testing.T) {
 	for i := range want {
 		want[i] = strings.ToLower(want[i])
 	}
+	want = slices.DeleteFunc(want, func(b string) bool { return b == "random" })
 	slices.Sort(want)
 	if got := impersonate.Families(); !slices.Equal(got, want) {
 		t.Fatalf("directive browsers %v differ from families %v", want, got)
