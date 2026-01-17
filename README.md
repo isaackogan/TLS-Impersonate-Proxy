@@ -51,7 +51,7 @@ Every name is a surf identifier and matching is case-insensitive: `X-TIP-HTTP2SE
 | `X-Tip-Browser` | `Chrome`, `Firefox`, `Edge`, `Random`, or a list such as `Chrome,Edge` | the full profile: TLS ClientHello, HTTP/2 and HTTP/3 SETTINGS, header set and order. A list is chosen from once per connection. Edge is Chromium's fingerprint with Edge's User-Agent and brands, on every OS but iOS |
 | `X-Tip-Os` | `Windows`, `MacOS`, `Linux`, `Android`, `IOS`, `Random`, or a list such as `IOS,Android` | the OS the profile claims; a list is chosen from once per connection, among the OSes the browser supports |
 | `X-Tip-Profile` | an `id` from `GET /profiles` | one exact identity: the browser, OS, User-Agent and client hints the catalogue lists for it; replaces `Browser`, `Os` and `Match` |
-| `X-Tip-Match` | `true` | infer `Browser` and `Os` from your User-Agent when `X-Tip-Browser` is absent; Safari, curl and library defaults get no impersonation |
+| `X-Tip-Match` | `true` | infer `Browser` and `Os` from your User-Agent when you name no browser yourself; a User-Agent TIP cannot place, such as Safari or curl, gets the configured default browser, or no impersonation without one |
 | `X-Tip-Ja` | a surf JA preset such as `Chrome120PQ`, `Firefox148`, `Safari`, `Randomized` | the TLS ClientHello alone |
 | `X-Tip-Http2Settings` | `HeaderTableSize=65536; EnablePush=0; …` | HTTP/2 SETTINGS and flow control |
 | `X-Tip-Http3Settings` | `QpackMaxTableCapacity=65536; Grease=true; …` | HTTP/3 SETTINGS, in the order written |
@@ -81,7 +81,7 @@ Every name is a surf identifier and matching is case-insensitive: `X-TIP-HTTP2SE
 
 When `X-Tip-Browser` applies, the profile owns User-Agent, Accept, Accept-Encoding, Accept-Language, Upgrade-Insecure-Requests, Priority, the `Sec-Fetch-*` and `sec-ch-ua*` families, and on POST also Cache-Control and Pragma. Cookie, Authorization, Referer, Origin, Content-Type and everything else you send pass through unchanged.
 
-`X-Tip-Match` first compares your User-Agent byte-for-byte against the strings surf's profiles emit; a match pins browser and OS. Otherwise `Firefox/` or `FxiOS/` selects Firefox and `Chrome/`, `CriOS/` or `Chromium/` selects Chrome, with the OS read from the platform token. Explicit `X-Tip-Browser` and `X-Tip-Os` always win.
+`X-Tip-Match` first compares your User-Agent byte-for-byte against the strings surf's profiles emit; a match pins browser and OS. Otherwise `Firefox/` or `FxiOS/` selects Firefox and `Chrome/`, `CriOS/` or `Chromium/` selects Chrome, with the OS read from the platform token. Explicit `X-Tip-Browser` and `X-Tip-Os` always win, and a configured default browser is only the fallback for User-Agents TIP cannot place, so `defaults: {Browser: Chrome, Match: true}` gives every request a real fingerprint.
 
 > [!TIP]
 > `X-Tip-Keep: Accept, User-Agent` hands those headers back to you after the profile runs. With `X-Tip-Match: true` that gives your exact User-Agent a matching TLS and HTTP/2 fingerprint.
