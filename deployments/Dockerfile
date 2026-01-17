@@ -4,6 +4,7 @@ WORKDIR /src
 COPY go.work ./
 COPY cmd/tip/go.mod cmd/tip/go.sum ./cmd/tip/
 COPY internal/config/go.mod internal/config/go.sum ./internal/config/
+COPY internal/connect/go.mod ./internal/connect/
 COPY internal/directive/go.mod internal/directive/go.sum ./internal/directive/
 COPY internal/impersonate/go.mod internal/impersonate/go.sum ./internal/impersonate/
 COPY internal/logging/go.mod ./internal/logging/

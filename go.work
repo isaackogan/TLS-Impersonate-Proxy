@@ -5,6 +5,7 @@ toolchain go1.27.1
 use (
 	./cmd/tip
 	./internal/config
+	./internal/connect
 	./internal/directive
 	./internal/impersonate
 	./internal/logging
