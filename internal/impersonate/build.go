@@ -1,8 +1,11 @@
 package impersonate
 
 import (
+	"crypto/tls"
+	"errors"
 	"fmt"
 	"math"
+	"net/url"
 	"slices"
 	"strings"
 	"time"
@@ -11,6 +14,7 @@ import (
 	ehttp "github.com/enetx/http"
 	"github.com/enetx/surf"
 
+	"github.com/isaackogan/tls-impersonate-proxy/internal/connect"
 	"github.com/isaackogan/tls-impersonate-proxy/internal/directive"
 )
 
@@ -87,7 +91,15 @@ func Build(s directive.Spec, o Options) (*Client, error) {
 	if s.Http3Settings != nil {
 		b = http3Settings(b.HTTP3Settings(), s.Http3Settings)
 	}
-	b = b.Proxy(g.String(s.Proxy))
+	hop, err := hopDialer(s, o)
+	if err != nil {
+		return nil, err
+	}
+	if hop != nil {
+		b = b.Proxy("").With(hop, 10)
+	} else {
+		b = b.Proxy(g.String(s.Proxy))
+	}
 	if s.Dns != "" {
 		b = b.DNS(g.String(s.Dns))
 	}
@@ -123,6 +135,38 @@ func Build(s directive.Spec, o Options) (*Client, error) {
 	}
 	cli := built.Ok()
 	return &Client{Key: s.Key(), transport: cli.Std().Transport, closer: cli}, nil
+}
+
+// hopDialer hands http and https proxies to TIP's own CONNECT dialer so a hop's refusal keeps its status, headers
+// and body. It runs after surf's dialer options (priority 0), which set the resolver and local address it reuses,
+// and before the uTLS wrapper clones the transport at build, so every TLS path dials through it. SOCKS stays with surf.
+func hopDialer(s directive.Spec, o Options) (func(*surf.Client) error, error) {
+	if s.Proxy == "" {
+		return nil, nil
+	}
+	if s.ForceHttp == "3" {
+		return nil, errors.New("proxy is not supported over HTTP/3")
+	}
+	u, err := url.Parse(s.Proxy)
+	if err != nil {
+		return nil, err
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return nil, nil
+	}
+	return func(c *surf.Client) error {
+		t, ok := c.GetTransport().(*ehttp.Transport)
+		if !ok {
+			return errors.New("proxy needs an HTTP/1.1 or HTTP/2 transport")
+		}
+		d, err := connect.New(u, c.GetDialer(), &tls.Config{InsecureSkipVerify: !o.VerifyCertificates})
+		if err != nil {
+			return err
+		}
+		t.Proxy = nil
+		t.DialContext = d.DialContext
+		return nil
+	}, nil
 }
 
 func impersonateOs(im *surf.Impersonate, os string) *surf.Impersonate {

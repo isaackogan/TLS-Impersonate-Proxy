@@ -78,6 +78,10 @@ func (u *Upstream) serve(w http.ResponseWriter, r *http.Request) {
 	case r.URL.Path == "/ws":
 		echoWebSocket(w, r)
 		return
+	case r.URL.Path == "/xtip":
+		w.Header().Set("X-Tip-Error", "from-origin")
+		w.Header().Set("X-Tip-Proxy-Status", "999")
+		w.Header().Set("X-Origin", "kept")
 	case r.URL.Path == "/redirect":
 		http.Redirect(w, r, "https://example.invalid/landing", http.StatusFound)
 		return

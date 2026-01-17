@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/elazarl/goproxy"
 
+	"github.com/isaackogan/tls-impersonate-proxy/internal/connect"
+	"github.com/isaackogan/tls-impersonate-proxy/internal/directive"
 	"github.com/isaackogan/tls-impersonate-proxy/internal/impersonate"
 )
 
@@ -34,6 +37,7 @@ func (rt *roundTripper) RoundTrip(req *http.Request, _ *goproxy.ProxyCtx) (*http
 	}
 	st.capture = &impersonate.Capture{}
 	ctx = impersonate.WithCapture(ctx, st.capture)
+	ctx, memo := connect.WithMemo(ctx)
 	if st.original != nil {
 		ctx = impersonate.WithKeep(ctx, st.original, st.directive.Keep)
 	}
@@ -50,16 +54,17 @@ func (rt *roundTripper) RoundTrip(req *http.Request, _ *goproxy.ProxyCtx) (*http
 	if err != nil {
 		cancel()
 		rt.client.Release()
-		kind := impersonate.Classify(err)
-		if kind == "dial" && st.spec.Proxy != "" {
-			kind = "proxy"
+		d := diagnose(err, memo)
+		if d.kind == "dial" && st.spec.Proxy != "" {
+			d.kind = "proxy"
 		}
-		s.obs.UpstreamError(st.host, kind)
-		s.log.Warn("upstream failed", "host", st.host, "path", st.path, "kind", kind, "error", err.Error())
-		resp = badGateway(req, kind, err)
+		s.obs.UpstreamError(st.host, d.kind)
+		s.log.Warn("upstream failed", d.attrs(st)...)
+		resp = badGateway(req, d)
 		s.finish(st, resp.StatusCode, 0)
 		return resp, nil
 	}
+	directive.Strip(resp.Header)
 	s.logOutbound(st)
 	var out atomic.Int64
 	resp.Body = countReads(resp.Body, &out)
@@ -110,6 +115,38 @@ func (s *Server) finish(st *state, status int, bytesOut int64) {
 		"method", ev.Method, "scheme", st.scheme, "host", ev.Host, "path", ev.Path, "status", status,
 		"duration_ms", ev.Duration.Milliseconds(), "bytes_in", ev.BytesIn, "bytes_out", bytesOut,
 		"browser", ev.Browser, "os", os, "route", route, "client_key", shortKey(st.spec.Key()))
+}
+
+type diagnosis struct {
+	kind    string
+	message string
+	phase   connect.Phase
+	verdict *connect.Verdict
+}
+
+// diagnose names the failure. A hop error is the root cause even when surf wrapped it with a fallback attempt,
+// and a timeout the transport reported as its own is attributed to the hop phase the memo saw under way.
+func diagnose(err error, memo *connect.Memo) diagnosis {
+	d := diagnosis{kind: impersonate.Classify(err), message: err.Error()}
+	var hop *connect.Error
+	if errors.As(err, &hop) {
+		d.message, d.phase, d.verdict = hop.Error(), hop.Phase, hop.Verdict
+	} else if d.kind == "timeout" && memo.Phase() != "" {
+		d.phase = memo.Phase()
+		d.message = string(d.phase) + ": " + d.message
+	}
+	return d
+}
+
+func (d diagnosis) attrs(st *state) []any {
+	attrs := []any{"host", st.host, "path", st.path, "kind", d.kind, "error", d.message}
+	if d.phase != "" {
+		attrs = append(attrs, "phase", string(d.phase))
+	}
+	if d.verdict != nil {
+		attrs = append(attrs, "proxy_status", d.verdict.Status)
+	}
+	return attrs
 }
 
 func shortKey(key string) string {

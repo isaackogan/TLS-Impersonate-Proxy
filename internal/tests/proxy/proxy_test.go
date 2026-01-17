@@ -21,6 +21,7 @@ type recording struct {
 	mu       sync.Mutex
 	events   []proxy.RequestEvent
 	failures []string
+	upstream []string
 	tunnels  int
 }
 
@@ -35,7 +36,20 @@ func (r *recording) ValidationFailed(d string) {
 	defer r.mu.Unlock()
 	r.failures = append(r.failures, d)
 }
-func (r *recording) UpstreamError(string, string) {}
+func (r *recording) UpstreamError(_, kind string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.upstream = append(r.upstream, kind)
+}
+
+func (r *recording) lastUpstreamError() string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if len(r.upstream) == 0 {
+		return ""
+	}
+	return r.upstream[len(r.upstream)-1]
+}
 func (r *recording) TunnelOpened() {
 	r.mu.Lock()
 	defer r.mu.Unlock()

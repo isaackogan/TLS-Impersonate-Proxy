@@ -9,6 +9,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/isaackogan/tls-impersonate-proxy/internal/connect"
 )
 
 type Client struct {
@@ -64,6 +66,18 @@ func (c *Client) retire() {
 func Classify(err error) string {
 	var netErr net.Error
 	var opErr *net.OpError
+	var hop *connect.Error
+	if errors.As(err, &hop) {
+		switch {
+		case hop.Verdict != nil:
+			return "proxy_rejected"
+		case errors.Is(hop.Err, context.Canceled), errors.Is(hop.Err, context.DeadlineExceeded):
+			return "timeout"
+		case errors.As(hop.Err, &netErr) && netErr.Timeout():
+			return "timeout"
+		}
+		return "proxy"
+	}
 	msg := strings.ToLower(err.Error())
 	switch {
 	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
