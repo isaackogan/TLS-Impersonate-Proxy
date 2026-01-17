@@ -203,11 +203,11 @@ A request whose directives fail validation never reaches the destination:
 HTTP/1.1 418 I'm a teapot
 Content-Length: 0
 X-Tip-Error-Count: 2
-X-Tip-Error: Browser: must be one of Chrome, Firefox
+X-Tip-Error: Browser[0]: must be one of Chrome, Firefox, Edge, Random
 X-Tip-Error: Timeout: must be a duration such as 15s or 500ms
 ```
 
-An upstream failure is a `502` with one `X-Tip-Error` naming the kind: `dial`, `tls`, `timeout`, `proxy` or `read`. A missing or wrong proxy credential is a `407`.
+An upstream failure is a `502` with one `X-Tip-Error` naming the kind: `dial`, `tls`, `timeout`, `proxy`, `proxy_rejected` or `read`. When the proxy named in `X-Tip-Proxy` refuses the CONNECT, `X-Tip-Proxy-Status` carries its raw status code, `X-Tip-Proxy-Error` the first line of its body, and its own headers are relayed, so a vendor's `407` and its error header reach you as the vendor sent them. A failure before the tunnel is up names its phase, `proxy-dial`, `proxy-tls` or `proxy-connect`; anything after it is the origin's. TIP removes any `X-Tip-*` header an origin sends, so those headers are always TIP's own. A missing or wrong credential for TIP itself is a `407`.
 
 ## Built on
 
