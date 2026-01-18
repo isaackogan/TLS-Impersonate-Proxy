@@ -82,6 +82,7 @@ func (u *Upstream) serve(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Tip-Error", "from-origin")
 		w.Header().Set("X-Tip-Proxy-Status", "999")
 		w.Header().Set("X-Origin", "kept")
+		w.Header().Set("Proxy-Status", "cdn")
 	case r.URL.Path == "/redirect":
 		http.Redirect(w, r, "https://example.invalid/landing", http.StatusFound)
 		return

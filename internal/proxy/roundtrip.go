@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -54,13 +55,10 @@ func (rt *roundTripper) RoundTrip(req *http.Request, _ *goproxy.ProxyCtx) (*http
 	if err != nil {
 		cancel()
 		rt.client.Release()
-		d := diagnose(err, memo)
-		if d.kind == "dial" && st.spec.Proxy != "" {
-			d.kind = "proxy"
-		}
+		d := diagnose(err, st, memo)
 		s.obs.UpstreamError(st.host, d.kind)
 		s.log.Warn("upstream failed", d.attrs(st)...)
-		resp = badGateway(req, d)
+		resp = upstreamFailure(req, d, err)
 		s.finish(st, resp.StatusCode, 0)
 		return resp, nil
 	}
@@ -118,22 +116,39 @@ func (s *Server) finish(st *state, status int, bytesOut int64) {
 }
 
 type diagnosis struct {
-	kind    string
-	message string
-	phase   connect.Phase
-	verdict *connect.Verdict
+	kind      string
+	message   string
+	phase     connect.Phase
+	verdict   *connect.Verdict
+	connected bool
+	nextHop   string
 }
 
-// diagnose names the failure. A hop error is the root cause even when surf wrapped it with a fallback attempt,
-// and a timeout the transport reported as its own is attributed to the hop phase the memo saw under way.
-func diagnose(err error, memo *connect.Memo) diagnosis {
-	d := diagnosis{kind: impersonate.Classify(err), message: err.Error()}
+// diagnose names the failure. A hop error is the root cause even when surf wrapped it with a fallback attempt.
+// A timeout the transport reported as its own is placed by the hop phase the memo saw under way, else by whether
+// a connection to the origin had been obtained. The next hop is the upstream proxy when there is one.
+func diagnose(err error, st *state, memo *connect.Memo) diagnosis {
+	d := diagnosis{kind: impersonate.Classify(err), message: err.Error(), connected: st.capture.Connected.Load(), nextHop: st.host}
+	if st.spec.Proxy != "" {
+		if u, err := url.Parse(st.spec.Proxy); err == nil {
+			d.nextHop = u.Host
+		}
+		if d.kind == "dial" {
+			d.kind = "proxy"
+		}
+	}
 	var hop *connect.Error
-	if errors.As(err, &hop) {
+	switch {
+	case errors.As(err, &hop):
 		d.message, d.phase, d.verdict = hop.Error(), hop.Phase, hop.Verdict
-	} else if d.kind == "timeout" && memo.Phase() != "" {
+	case d.kind != "timeout":
+	case memo.Phase() != "":
 		d.phase = memo.Phase()
-		d.message = string(d.phase) + ": " + d.message
+		d.message = string(d.phase) + ": waiting for " + d.nextHop
+	case d.connected:
+		d.message = "waiting for response headers from " + st.host
+	default:
+		d.message = "connecting to " + st.host
 	}
 	return d
 }

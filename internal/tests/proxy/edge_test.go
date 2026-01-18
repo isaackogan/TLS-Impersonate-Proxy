@@ -113,7 +113,7 @@ func TestBadGatewayEmitsEvent(t *testing.T) {
 func TestDirectiveTimeoutShortensHeadersPhase(t *testing.T) {
 	h := newHarness(t, nil)
 	resp, _ := h.get(t, h.upstream.URL+"/slow", "X-Tip-Browser", "Chrome", "X-Tip-Timeout", "100ms", "X-Upstream-Delay", "800ms")
-	if resp.StatusCode != 502 || !strings.HasPrefix(resp.Header.Get("X-Tip-Error"), "timeout:") {
+	if resp.StatusCode != 504 || !strings.HasPrefix(resp.Header.Get("X-Tip-Error"), "timeout:") {
 		t.Fatalf("status %d headers %v", resp.StatusCode, resp.Header)
 	}
 }
@@ -121,7 +121,7 @@ func TestDirectiveTimeoutShortensHeadersPhase(t *testing.T) {
 func TestConfiguredTimeoutIsTheCeilingOverHTTP2(t *testing.T) {
 	h := newHarness(t, func(o *proxy.Options) { o.Timeout = 150 * time.Millisecond })
 	resp, echoed := h.get(t, h.upstream.URL+"/ceiling", "X-Tip-Browser", "Chrome", "X-Tip-Timeout", "10s", "X-Upstream-Delay", "800ms")
-	if resp.StatusCode != 502 || !strings.HasPrefix(resp.Header.Get("X-Tip-Error"), "timeout:") {
+	if resp.StatusCode != 504 || !strings.HasPrefix(resp.Header.Get("X-Tip-Error"), "timeout:") {
 		t.Fatalf("directive must not extend the ceiling: status %d headers %v echoed %v", resp.StatusCode, resp.Header, echoed)
 	}
 }

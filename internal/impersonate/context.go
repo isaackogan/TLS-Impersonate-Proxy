@@ -6,6 +6,7 @@ import (
 	"net/textproto"
 	"slices"
 	"strings"
+	"sync/atomic"
 
 	ehttp "github.com/enetx/http"
 	"github.com/enetx/surf"
@@ -20,8 +21,11 @@ type keep struct {
 	names    []string
 }
 
+// Capture collects what the transport did with a request: the final outbound header lines, and whether a
+// connection to the origin was obtained, which is what separates a dial timeout from a headers timeout.
 type Capture struct {
-	Headers []string
+	Headers   []string
+	Connected atomic.Bool
 }
 
 func WithKeep(ctx context.Context, original http.Header, names []string) context.Context {

@@ -201,7 +201,7 @@ func TestBogusInterfaceIsABuildError(t *testing.T) {
 func TestTinyTimeoutIsArmed(t *testing.T) {
 	h := newHarness(t, nil)
 	resp, _ := h.get(t, h.upstream.URL+"/tiny", "X-Tip-Browser", "Chrome", "X-Tip-Timeout", "1ms", "X-Upstream-Delay", "300ms")
-	if resp.StatusCode != 502 || !strings.HasPrefix(resp.Header.Get("X-Tip-Error"), "timeout:") {
+	if resp.StatusCode != 504 || !strings.HasPrefix(resp.Header.Get("X-Tip-Error"), "timeout:") {
 		t.Fatalf("status %d headers %v", resp.StatusCode, resp.Header)
 	}
 }
@@ -280,8 +280,8 @@ func TestDrainWaitsForActiveRequestsAndRefusesNewOnes(t *testing.T) {
 		drained <- h.server.Drain(ctx)
 	}()
 	resp, _ := h.get(t, h.upstream.URL+"/late", "X-Tip-Browser", "Chrome")
-	if resp.StatusCode != 503 {
-		t.Fatalf("new request during drain: status %d", resp.StatusCode)
+	if resp.StatusCode != 503 || resp.Header.Get("Proxy-Status") != `tip; error=proxy_internal_error; details="shutting down"` {
+		t.Fatalf("new request during drain: status %d headers %v", resp.StatusCode, resp.Header)
 	}
 	if status := <-finished; status != 200 {
 		t.Fatalf("in-flight request finished with %d", status)

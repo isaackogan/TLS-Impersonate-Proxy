@@ -10,6 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	ehttptrace "github.com/enetx/http/httptrace"
+
 	"github.com/isaackogan/tls-impersonate-proxy/internal/connect"
 )
 
@@ -32,6 +34,10 @@ var ErrClosed = errors.New("impersonate: client is closed")
 func (c *Client) RoundTrip(r *http.Request) (*http.Response, error) {
 	if c.closed.Load() {
 		return nil, ErrClosed
+	}
+	if capture, ok := r.Context().Value(captureKey{}).(*Capture); ok {
+		trace := &ehttptrace.ClientTrace{GotConn: func(ehttptrace.GotConnInfo) { capture.Connected.Store(true) }}
+		r = r.WithContext(ehttptrace.WithClientTrace(r.Context(), trace))
 	}
 	return c.transport.RoundTrip(r)
 }

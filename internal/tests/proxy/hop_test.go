@@ -72,7 +72,7 @@ func TestHopFailuresNameTheirPhase(t *testing.T) {
 	hop := testutil.NewHop(t)
 	hop.Reply(func(*http.Request) *testutil.HopReply { return &testutil.HopReply{Stall: true} })
 	resp, _ = h.get(t, h.upstream.URL+"/stalled", "X-Tip-Proxy", "http://"+hop.Addr, "X-Tip-Timeout", "300ms")
-	if resp.StatusCode != 502 || !strings.HasPrefix(resp.Header.Get("X-Tip-Error"), "timeout: proxy-connect: ") {
+	if resp.StatusCode != 504 || !strings.HasPrefix(resp.Header.Get("X-Tip-Error"), "timeout: proxy-connect: ") {
 		t.Fatalf("status %d headers %v", resp.StatusCode, resp.Header)
 	}
 	if kind := h.obs.lastUpstreamError(); kind != "timeout" {
