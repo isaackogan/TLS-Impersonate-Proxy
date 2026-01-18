@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/isaackogan/tls-impersonate-proxy/internal/directive"
+	"github.com/isaackogan/tls-impersonate-proxy/internal/logging"
 )
 
 var singleLine = strings.NewReplacer("\r", " ", "\n", " ")
@@ -28,7 +29,7 @@ func upstreamFailure(req *http.Request, d diagnosis, err error) *http.Response {
 		relay(h, d.verdict.Header)
 		h.Set("X-Tip-Proxy-Status", strconv.Itoa(d.verdict.Status))
 		status.received = d.verdict.Status
-		if line := d.verdict.Line(); line != "" {
+		if line := logging.RedactUserinfo(d.verdict.Line()); line != "" {
 			h.Set("X-Tip-Proxy-Error", singleLine.Replace(line))
 			status.details = line
 		}

@@ -13,6 +13,7 @@ import (
 
 	"github.com/isaackogan/tls-impersonate-proxy/internal/directive"
 	"github.com/isaackogan/tls-impersonate-proxy/internal/impersonate"
+	"github.com/isaackogan/tls-impersonate-proxy/internal/logging"
 )
 
 type identity struct{ browser, os []string }
@@ -110,7 +111,7 @@ func (s *Server) onRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Requ
 	if err != nil {
 		s.obs.ValidationFailed("Build")
 		s.finish(st, http.StatusTeapot, 0)
-		return req, teapot(req, directive.Issues{{Message: err.Error()}})
+		return req, teapot(req, directive.Issues{{Message: logging.RedactUserinfo(err.Error())}})
 	}
 	ctx.RoundTripper = &roundTripper{server: s, client: client, state: st}
 	return req, nil

@@ -17,6 +17,7 @@ import (
 	"github.com/isaackogan/tls-impersonate-proxy/internal/connect"
 	"github.com/isaackogan/tls-impersonate-proxy/internal/directive"
 	"github.com/isaackogan/tls-impersonate-proxy/internal/impersonate"
+	"github.com/isaackogan/tls-impersonate-proxy/internal/logging"
 )
 
 type roundTripper struct {
@@ -150,6 +151,7 @@ func diagnose(err error, st *state, memo *connect.Memo) diagnosis {
 	default:
 		d.message = "connecting to " + st.host
 	}
+	d.message = logging.RedactUserinfo(d.message)
 	return d
 }
 
