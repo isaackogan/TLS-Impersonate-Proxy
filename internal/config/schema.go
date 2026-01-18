@@ -65,7 +65,7 @@ var schema = z.Struct(z.Shape{
 		"deny":     z.Slice(z.String().Min(1)),
 	}),
 	"clients": z.Struct(z.Shape{
-		"max":     z.Int().Default(256).GT(0),
+		"max":     z.Int().Default(4096).GT(0),
 		"idleTtl": duration().Default(10 * time.Minute).GT(0),
 	}),
 	"encoding": z.Struct(z.Shape{

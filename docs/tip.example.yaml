@@ -26,7 +26,7 @@ directives:
   deny: []                     # directives clients may not send, e.g. [Proxy, InterfaceAddr, Dns, DnsOverTls]
 
 clients:
-  max: 256                     # distinct surf clients kept alive (LRU beyond this)
+  max: 4096                    # distinct surf clients kept alive (LRU beyond this); an idle one is about 6 KiB
   idle_ttl: 10m                # evict a client unused for this long
 
 encoding:

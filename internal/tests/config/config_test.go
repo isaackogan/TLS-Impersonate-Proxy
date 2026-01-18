@@ -31,7 +31,7 @@ func TestEmptyFileYieldsDefaults(t *testing.T) {
 		{"server.serve_profiles", cfg.Server.ServeProfiles, true},
 		{"tls.cert_cache_size", cfg.Tls.CertCacheSize, 4096},
 		{"upstream.timeout", cfg.Upstream.Timeout, 30 * time.Second},
-		{"clients.max", cfg.Clients.Max, 256},
+		{"clients.max", cfg.Clients.Max, 4096},
 		{"clients.idle_ttl", cfg.Clients.IdleTtl, 10 * time.Minute},
 		{"encoding.mode", cfg.Encoding.Mode, "negotiate"},
 		{"auth.realm", cfg.Auth.Realm, "tip"},
