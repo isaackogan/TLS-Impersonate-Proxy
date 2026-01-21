@@ -38,8 +38,10 @@ type Upstream struct {
 }
 
 type Directives struct {
-	Defaults map[string]string `zog:"defaults"`
-	Deny     []string          `zog:"deny"`
+	Defaults     map[string]string `zog:"defaults"`
+	Deny         []string          `zog:"deny"`
+	ProxyHosts   []string          `zog:"proxy_hosts"`
+	RequireProxy bool              `zog:"require_proxy"`
 }
 
 type Clients struct {

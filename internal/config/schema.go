@@ -61,8 +61,10 @@ var schema = z.Struct(z.Shape{
 		"timeout":            duration().Default(30 * time.Second).GT(0),
 	}),
 	"directives": z.Struct(z.Shape{
-		"defaults": stringMap(),
-		"deny":     z.Slice(z.String().Min(1)),
+		"defaults":     stringMap(),
+		"deny":         z.Slice(z.String().Min(1)),
+		"proxyHosts":   z.Slice(z.String().Min(1)),
+		"requireProxy": flag(false),
 	}),
 	"clients": z.Struct(z.Shape{
 		"max":     z.Int().Default(4096).GT(0),

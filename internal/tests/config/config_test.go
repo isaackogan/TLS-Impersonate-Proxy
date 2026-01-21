@@ -32,6 +32,7 @@ func TestEmptyFileYieldsDefaults(t *testing.T) {
 		{"tls.cert_cache_size", cfg.Tls.CertCacheSize, 4096},
 		{"upstream.timeout", cfg.Upstream.Timeout, 30 * time.Second},
 		{"clients.max", cfg.Clients.Max, 4096},
+		{"directives.require_proxy", cfg.Directives.RequireProxy, false},
 		{"clients.idle_ttl", cfg.Clients.IdleTtl, 10 * time.Minute},
 		{"encoding.mode", cfg.Encoding.Mode, "negotiate"},
 		{"auth.realm", cfg.Auth.Realm, "tip"},
@@ -68,7 +69,7 @@ func TestFullFile(t *testing.T) {
 	if !cfg.Tls.ClientHttp2 || cfg.Tls.CertCacheSize != 10 {
 		t.Fatalf("tls %+v", cfg.Tls)
 	}
-	if cfg.Directives.Defaults["Browser"] != "Chrome" || cfg.Directives.Defaults["X-Tip-Os"] != "Random" || cfg.Directives.Deny[1] != "InterfaceAddr" {
+	if cfg.Directives.Defaults["Browser"] != "Chrome" || cfg.Directives.Defaults["X-Tip-Os"] != "Random" || cfg.Directives.Deny[1] != "InterfaceAddr" || cfg.Directives.ProxyHosts[0] != "egress.internal:3128" || !cfg.Directives.RequireProxy {
 		t.Fatalf("directives %+v", cfg.Directives)
 	}
 	if len(cfg.Auth.Users) != 1 || cfg.Auth.Users["alice"] != "secret" {

@@ -19,6 +19,8 @@ directives:
     Browser: Chrome
     X-Tip-Os: Random
   deny: [Proxy, InterfaceAddr]
+  proxy_hosts: [egress.internal:3128, "*.svc.cluster.local"]
+  require_proxy: true
 clients:
   max: 5
   idle_ttl: 1m

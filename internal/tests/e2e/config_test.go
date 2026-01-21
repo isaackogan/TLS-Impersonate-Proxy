@@ -21,6 +21,8 @@ func TestInvalidConfigFailsFast(t *testing.T) {
 		{"bad value", "clients:\n  max: 0\n", "clients.max"},
 		{"bad default directive", "directives:\n  defaults:\n    Browser: Safari\n", "defaults: Browser[0]: must be one of"},
 		{"bad deny", "directives:\n  deny: [Colour]\n", "deny: unknown directive"},
+		{"bad proxy host", "directives:\n  proxy_hosts: [\"http://egress\"]\n", "proxy_hosts"},
+		{"require proxy while denied", "directives:\n  deny: [Proxy]\n  require_proxy: true\n", "require_proxy"},
 		{"bad route capture", "metrics:\n  routes:\n    - {name: r, host: h, path: /a/:id, capture: [other]}\n", "capture \"other\" is not a parameter"},
 	}
 	for _, tc := range cases {

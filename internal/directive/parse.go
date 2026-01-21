@@ -61,6 +61,15 @@ func Parse(h http.Header, p Policy) (Directive, Issues) {
 	if len(issues) > 0 {
 		return Directive{}, issues
 	}
+	if d.Proxy == "" && p.requireProxy {
+		issues = append(issues, Issue{Path: "Proxy", Message: "required by this proxy"})
+	}
+	if d.Proxy != "" && !p.proxyAllowed(d.Proxy) {
+		issues = append(issues, Issue{Path: "Proxy", Message: p.hostMessage()})
+	}
+	if len(issues) > 0 {
+		return Directive{}, issues
+	}
 	d.fromRequest = make(map[string]struct{}, len(req))
 	for key := range req {
 		d.fromRequest[key] = struct{}{}
