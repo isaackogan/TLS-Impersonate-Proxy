@@ -24,7 +24,9 @@ func TestBrowserChoiceList(t *testing.T) {
 		}
 		return d
 	}
-	joined := func(d directive.Directive) string { return strings.Join(d.Browser, ",") + "/" + strings.Join(d.Os, ",") }
+	joined := func(d directive.Directive) string {
+		return strings.Join(d.Browser, ",") + "/" + strings.Join(d.Os, ",")
+	}
 
 	d, ok := parse("X-Tip-Browser", "Random").Resolve(families, oses, last)
 	if !ok || joined(d) != "firefox/" {

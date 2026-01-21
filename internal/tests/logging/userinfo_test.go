@@ -15,7 +15,7 @@ func TestRedactUserinfo(t *testing.T) {
 		"http://proxy.example:8080/no/creds":                  "http://proxy.example:8080/no/creds",
 		`parse "http://alice:s3cret@h:1": first path segment`: `parse "http://***@h:1": first path segment`,
 		"a http://u:p@h1 and socks5://u2:p2@h2 too":           "a http://***@h1 and socks5://***@h2 too",
-		"nothing here":                                        "nothing here",
+		"nothing here": "nothing here",
 	}
 	for in, want := range cases {
 		if got := logging.RedactUserinfo(in); got != want {

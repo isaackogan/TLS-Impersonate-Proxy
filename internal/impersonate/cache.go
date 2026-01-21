@@ -22,10 +22,10 @@ type CacheObserver interface {
 
 type NopObserver struct{}
 
-func (NopObserver) CacheHit()                   {}
-func (NopObserver) CacheMiss()                  {}
+func (NopObserver) CacheHit()                  {}
+func (NopObserver) CacheMiss()                 {}
 func (NopObserver) ClientBuilt(directive.Spec) {}
-func (NopObserver) ClientEvicted()              {}
+func (NopObserver) ClientEvicted()             {}
 
 type pending struct {
 	done   chan struct{}

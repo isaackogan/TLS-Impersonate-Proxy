@@ -124,7 +124,9 @@ func TestRefusalKeepsStatusHeadersAndBody(t *testing.T) {
 
 func TestRefusalBodyIsCapped(t *testing.T) {
 	hop := testutil.NewHop(t)
-	hop.Reply(func(*http.Request) *testutil.HopReply { return &testutil.HopReply{Status: 503, Body: strings.Repeat("x", 10000)} })
+	hop.Reply(func(*http.Request) *testutil.HopReply {
+		return &testutil.HopReply{Status: 503, Body: strings.Repeat("x", 10000)}
+	})
 	_, err := dialer(t, "http://"+hop.Addr).DialContext(context.Background(), "tcp", "example.invalid:443")
 	e := hopError(t, err)
 	if len(e.Verdict.Body) != connect.MaxBody || len(e.Verdict.Line()) != connect.MaxLine {

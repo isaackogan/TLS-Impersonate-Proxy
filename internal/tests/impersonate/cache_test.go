@@ -13,10 +13,10 @@ import (
 
 type counting struct{ hits, misses, builds, evictions atomic.Int64 }
 
-func (c *counting) CacheHit()                   { c.hits.Add(1) }
-func (c *counting) CacheMiss()                  { c.misses.Add(1) }
+func (c *counting) CacheHit()                  { c.hits.Add(1) }
+func (c *counting) CacheMiss()                 { c.misses.Add(1) }
 func (c *counting) ClientBuilt(directive.Spec) { c.builds.Add(1) }
-func (c *counting) ClientEvicted()              { c.evictions.Add(1) }
+func (c *counting) ClientEvicted()             { c.evictions.Add(1) }
 
 func newCache(t *testing.T, max int, ttl time.Duration, obs *counting) (*impersonate.Cache, *atomic.Int64) {
 	t.Helper()

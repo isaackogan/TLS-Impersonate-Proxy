@@ -24,6 +24,8 @@ upstream:
 directives:
   defaults: {}                 # directive values applied when the request omits them, e.g. {Browser: Chrome, Os: Random}
   deny: []                     # directives clients may not send, e.g. [Proxy, InterfaceAddr, Dns, DnsOverTls]
+  proxy_hosts: []              # hosts X-Tip-Proxy may name, e.g. [egress.internal:3128, "*.svc.cluster.local"]; empty allows any
+  require_proxy: false         # reject a request that would leave without an upstream proxy, after defaults
 
 clients:
   max: 4096                    # distinct surf clients kept alive (LRU beyond this); an idle one is about 6 KiB
