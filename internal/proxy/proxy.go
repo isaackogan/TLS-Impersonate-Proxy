@@ -47,12 +47,12 @@ type Clients interface {
 }
 
 type Server struct {
-	proxy   *goproxy.ProxyHttpServer
-	opts    Options
-	policy  directive.Policy
-	clients Clients
-	obs     Observer
-	log     *slog.Logger
+	proxy    *goproxy.ProxyHttpServer
+	opts     Options
+	policy   directive.Policy
+	clients  Clients
+	obs      Observer
+	log      *slog.Logger
 	caPEM    []byte
 	profiles []byte
 	tlsFor   func(host string, ctx *goproxy.ProxyCtx) (*tls.Config, error)
@@ -120,6 +120,18 @@ func (s *Server) Drain(ctx context.Context) error {
 
 func (s *Server) Active() int64 { return s.active.Load() }
 
+// ReadyHandler answers 200 until Drain starts and 503 from then on, so a load balancer stops sending new
+// connections while in-flight requests finish. Liveness is /healthz, which stays 200 throughout.
+func (s *Server) ReadyHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if s.draining.Load() {
+			http.Error(w, "draining", http.StatusServiceUnavailable)
+			return
+		}
+		io.WriteString(w, "ready\n")
+	})
+}
+
 func (s *Server) ProfilesHandler() http.Handler {
 	etag := `"` + impersonate.Profiles().Revision + `"`
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -165,6 +177,8 @@ func (s *Server) nonProxy(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.URL.Path == "/healthz":
 		io.WriteString(w, "ok\n")
+	case r.URL.Path == "/readyz":
+		s.ReadyHandler().ServeHTTP(w, r)
 	case r.URL.Path == "/ca.pem" && s.opts.ServeCa:
 		s.CAHandler().ServeHTTP(w, r)
 	case r.URL.Path == "/profiles" && s.opts.ServeProfiles:

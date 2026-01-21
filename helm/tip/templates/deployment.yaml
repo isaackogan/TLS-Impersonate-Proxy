@@ -34,8 +34,14 @@ spec:
               port: admin
           readinessProbe:
             httpGet:
-              path: /healthz
+              path: /readyz
               port: admin
+          {{- if gt (.Values.preStopSleepSeconds | int) 0 }}
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: {{ .Values.preStopSleepSeconds | int }}
+          {{- end }}
           volumeMounts:
             - name: config
               mountPath: /etc/tip

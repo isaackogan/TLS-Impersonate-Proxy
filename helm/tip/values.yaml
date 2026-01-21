@@ -37,6 +37,17 @@ serviceMonitor:
   enabled: false
   interval: 30s
 
+# Keeps replicas serving through node drains. Off by default: with replicaCount 1 a budget of 1 would block every drain.
+# Set maxUnavailable to use that form instead of minAvailable.
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  maxUnavailable: ""
+
+# Seconds the pod sleeps after being marked for deletion and before TIP gets SIGTERM, so endpoint removal
+# propagates while TIP still serves (Kubernetes 1.30+ sleep handler). 0 disables the hook.
+preStopSleepSeconds: 5
+
 resources: {}
 nodeSelector: {}
 tolerations: []

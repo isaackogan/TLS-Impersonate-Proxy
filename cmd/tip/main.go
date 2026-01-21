@@ -52,6 +52,14 @@ func run(path string) error {
 	if err != nil {
 		return err
 	}
+	if policy, err = policy.ProxyHosts(cfg.Directives.ProxyHosts); err != nil {
+		return err
+	}
+	if cfg.Directives.RequireProxy {
+		if policy, err = policy.RequireProxy(); err != nil {
+			return err
+		}
+	}
 	var m *metrics.Metrics
 	if cfg.Metrics.Enabled {
 		if m, err = metrics.New(metrics.Options{Collectors: metrics.Collectors(cfg.Metrics.Collectors), Routes: routes(cfg.Metrics.Routes)}); err != nil {
@@ -93,6 +101,7 @@ func run(path string) error {
 	proxyServer := &http.Server{Handler: srv, ReadHeaderTimeout: cfg.Server.ReadHeaderTimeout, IdleTimeout: cfg.Server.IdleTimeout, MaxHeaderBytes: cfg.Server.MaxHeaderBytes}
 	admin := http.NewServeMux()
 	admin.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprintln(w, "ok") })
+	admin.Handle("/readyz", srv.ReadyHandler())
 	admin.Handle("/ca.pem", srv.CAHandler())
 	admin.Handle("/profiles", srv.ProfilesHandler())
 	if m != nil {
@@ -116,10 +125,10 @@ func run(path string) error {
 	log.Info("shutting down", "grace", cfg.Server.ShutdownGrace.String())
 	graceCtx, cancel := context.WithTimeout(context.Background(), cfg.Server.ShutdownGrace)
 	defer cancel()
-	proxyServer.Shutdown(graceCtx)
 	if err := srv.Drain(graceCtx); err != nil {
 		log.Warn("shutdown cut requests short", "error", err.Error())
 	}
+	proxyServer.Shutdown(graceCtx)
 	adminServer.Shutdown(graceCtx)
 	return nil
 }
