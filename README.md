@@ -181,6 +181,8 @@ One YAML file, every key optional, unknown keys rejected at startup. [tip.exampl
 > [!CAUTION]
 > Captured route labels create one time series per distinct value.
 
+`clients.max`, 4096 by default, bounds the cache of surf clients, one per distinct fingerprint and proxy. An idle client is about 6 KiB; a warm HTTP/2 connection about 100 KiB, released 20 seconds after its last use. Size the cap to the distinct proxy URLs active within `clients.idle_ttl`. `tip_client_evictions_total` rising with `tip_client_builds_total` means the cap is too small and requests are paying a TLS handshake each.
+
 </details>
 
 <details>
