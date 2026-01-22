@@ -1,9 +1,14 @@
 replicaCount: 1
 
+# The name every object gets, and so the Service's DNS name. Empty: the release name when it already
+# contains "tip" (a release called tip is tip.<namespace>.svc), otherwise <release>-tip.
+fullnameOverride: ""
+
 image:
   repository: ghcr.io/isaackogan/tls-impersonate-proxy
   tag: ""
   pullPolicy: IfNotPresent
+  pullSecrets: []             # names of registry Secrets, for a private image: [ghcr-credentials]
 
 service:
   type: ClusterIP
