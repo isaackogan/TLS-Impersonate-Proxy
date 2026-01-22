@@ -53,6 +53,10 @@ podDisruptionBudget:
 # propagates while TIP still serves (Kubernetes 1.30+ sleep handler). 0 disables the hook.
 preStopSleepSeconds: 5
 
+# Added to the pod, for example an annotation-based Prometheus scrape of the admin port:
+#   {prometheus.io/scrape: "true", prometheus.io/port: "9090", prometheus.io/path: /metrics}
+podAnnotations: {}
+
 resources: {}
 nodeSelector: {}
 tolerations: []

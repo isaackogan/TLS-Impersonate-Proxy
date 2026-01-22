@@ -12,6 +12,9 @@ spec:
       labels: {{- include "tip.selectorLabels" . | nindent 8 }}
       annotations:
         checksum/config: {{ toYaml .Values.config | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       serviceAccountName: {{ include "tip.fullname" . }}
       {{- with .Values.image.pullSecrets }}
