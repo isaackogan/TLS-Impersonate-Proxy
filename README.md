@@ -92,6 +92,7 @@ When `X-Tip-Browser` applies, the profile owns User-Agent, Accept, Accept-Encodi
 
 > [!NOTE]
 > Every `X-Tip-*` header is removed before the request leaves TIP. Redirects, cookies and retries stay your library's job; TIP returns the destination's `3xx` and `Set-Cookie` as they are.
+> When the destination compresses with an encoding you did not offer, TIP decodes the body and the response arrives without `Content-Length` or `Content-Encoding`; `X-Tip-Keep: Accept-Encoding` gets you the origin's bytes and length as sent.
 
 ## Examples
 
@@ -159,9 +160,11 @@ auth:
   users: {alice: secret}
 ```
 
-One YAML file, every key optional, unknown keys rejected at startup. [tip.example.yaml](docs/tip.example.yaml) lists every key with its default and is the reference.
+One YAML file, every key optional, unknown keys rejected at startup. [tip.example.yaml](docs/tip.example.yaml) lists every key with its default and is the reference. `directives.proxy_hosts` restricts `X-Tip-Proxy` to listed hosts, and `directives.require_proxy` turns a request that would leave without an upstream proxy into a `418`, so nothing goes direct by accident.
 
 ## Observability
+
+`/healthz` answers as long as the process runs; `/readyz` turns `503` the moment TIP starts draining, on both ports.
 
 <details>
 <summary>Metrics on the admin port, each collector switchable in <code>metrics.collectors</code></summary>
