@@ -56,6 +56,11 @@ podDisruptionBudget:
 # propagates while TIP still serves (Kubernetes 1.30+ sleep handler). 0 disables the hook.
 preStopSleepSeconds: 5
 
+# The Deployment's update strategy, verbatim. A cluster with no spare capacity cannot schedule the extra
+# pod a default rolling update surges, and the rollout stalls; {rollingUpdate: {maxSurge: 0, maxUnavailable: 1}}
+# replaces a pod at a time instead, reusing the capacity each one frees.
+strategy: {}
+
 # Added to the pod, for example an annotation-based Prometheus scrape of the admin port:
 #   {prometheus.io/scrape: "true", prometheus.io/port: "9090", prometheus.io/path: /metrics}
 podAnnotations: {}

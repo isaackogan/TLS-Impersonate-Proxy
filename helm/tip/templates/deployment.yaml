@@ -5,6 +5,9 @@ metadata:
   labels: {{- include "tip.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  {{- with .Values.strategy }}
+  strategy: {{- toYaml . | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels: {{- include "tip.selectorLabels" . | nindent 6 }}
   template:
