@@ -13,6 +13,9 @@ image:
 service:
   type: ClusterIP
   port: 8080
+  # On the proxy Service only, for example to publish it through an operator:
+  #   {tailscale.com/expose: "true", tailscale.com/hostname: tip}
+  annotations: {}
 
 admin:
   service:
