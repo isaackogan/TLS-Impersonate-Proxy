@@ -25,7 +25,7 @@ jobs:
           tags: |
             type=raw,value=edge
             type=sha,format=long
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: deployments/Dockerfile
